@@ -1,10 +1,9 @@
 # Deploy — AWS Lightsail + nginx + pm2 + GitHub Actions (SSH)
 
-O deploy conecta via SSH direto na instância a cada push na `main`. Lá, o
-próprio servidor tem um `git clone` do repositório `school-api`; o workflow
-só faz `git pull`, escreve um `.env` novo a partir dos secrets do GitHub,
-builda e recarrega o pm2. Nada é buildado no runner do GitHub nem copiado
-por SCP.
+A cada push na `main`, o GitHub Actions builda o checkout, sincroniza os
+arquivos via **rsync** direto para `/opt/school-api` na instância (sem
+precisar de `git` instalado no servidor), escreve um `.env` novo a partir
+dos secrets, instala dependências, builda e recarrega o pm2 via SSH.
 
 ## 1. Bucket S3 e usuário IAM para os anexos das aulas
 
@@ -47,36 +46,35 @@ chmod +x setup-server.sh
 ./setup-server.sh
 ```
 
-Isso instala Node 20, pm2, nginx, git e Docker, sobe o MongoDB (container
-isolado, só em `127.0.0.1`) e clona o repositório em `/opt/school-api`. Ao
-final ele imprime os passos manuais restantes (chave SSH, nginx, firewall,
-certbot).
+Isso instala Node 20, pm2, nginx e Docker, sobe o MongoDB (container
+isolado, só em `127.0.0.1`) e cria `/opt/school-api` (vazio — o código
+chega ali via rsync a cada deploy, não por `git clone`). Ao final ele
+imprime os passos manuais restantes (chave SSH, nginx, firewall, certbot).
 
-## 3. Chave SSH dedicada para o GitHub Actions conectar na instância
+## 3. Chave SSH para o GitHub Actions conectar na instância
 
-Gere um par de chaves só para isso (não reuse sua chave pessoal):
+Essa é a única chave necessária — o workflow usa ela tanto para o rsync
+quanto para rodar os comandos remotos (`npm ci`, build, pm2). O conteúdo
+**completo** do arquivo `.pem`/chave privada (com as linhas `BEGIN`/`END`)
+vai no secret `LIGHTSAIL_SSH_KEY`. Prefira setar via `gh` CLI a colar na UI
+do GitHub — copy/paste manual costuma corromper quebras de linha e quebra o
+parse da chave (`ssh: no key found`):
+
+```bash
+gh secret set LIGHTSAIL_SSH_KEY --repo salesthiago/school-api --body-file "CAMINHO\PARA\SUA_CHAVE.pem"
+```
+
+**Chave dedicada vs. chave default da conta**: usar a chave `.pem` default
+da conta/região do Lightsail funciona (é o que este projeto está usando
+hoje), mas se ela vazar dá acesso a *qualquer* instância sua que use a
+mesma chave. Quando estiver tudo estável, vale trocar por uma chave
+dedicada só a esse deploy:
 
 ```bash
 ssh-keygen -t ed25519 -f school_api_deploy_key -C "github-actions-deploy" -N ""
+cat school_api_deploy_key.pub | ssh SEU-USUARIO@SEU-IP "cat >> ~/.ssh/authorized_keys"
+gh secret set LIGHTSAIL_SSH_KEY --repo salesthiago/school-api --body-file school_api_deploy_key
 ```
-
-Isso cria dois arquivos:
-
-- `school_api_deploy_key` — a chave **privada**. Vai para o secret
-  `LIGHTSAIL_SSH_KEY` no GitHub (conteúdo completo do arquivo, incluindo as
-  linhas `BEGIN`/`END`).
-- `school_api_deploy_key.pub` — a chave **pública**. Vai para a instância:
-
-```bash
-cat school_api_deploy_key.pub | ssh ubuntu@SEU-IP "cat >> ~/.ssh/authorized_keys"
-```
-
-Como os repositórios `school-api` e `school-web` são públicos, essa é a
-**única** chave SSH necessária — ela serve para o GitHub Actions entrar na
-instância; o `git pull` que a instância faz do próprio GitHub não precisa de
-credencial (repo público). Se um dia os repositórios ficarem privados, será
-necessário adicionar uma segunda chave (deploy key, só leitura) nas
-configurações do repositório no GitHub para o `git pull` funcionar.
 
 ## 4. Secrets a cadastrar no GitHub
 
@@ -130,14 +128,23 @@ vão para o S3, não para o disco da instância).
 
 ## 5. Como o deploy funciona
 
-`.github/workflows/deploy.yml` roda a cada push na `main`:
+`.github/workflows/deploy.yml` roda a cada push na `main`, em 5 steps
+separados (cada um com log próprio no Actions):
 
-1. Conecta via SSH na instância.
-2. Escreve `/opt/school-api/.env` com os valores acima.
-3. `git fetch && git reset --hard origin/main`.
-4. `npm ci && npm run build`.
-5. `pm2 reload ecosystem.config.js --env production` (ou `pm2 start` no
-   primeiro deploy) e `pm2 save`.
+1. **Checkout** — baixa o código no runner do GitHub.
+2. **Configurar chave SSH** — grava `LIGHTSAIL_SSH_KEY` em `~/.ssh/deploy_key`
+   e faz `ssh-keyscan` do host.
+3. **Preparar diretório remoto** — `mkdir -p /opt/school-api` + `chown` na
+   instância (idempotente, não falha se já existir).
+4. **Sincronizar via rsync** — copia o repo do runner para
+   `/opt/school-api`, excluindo `.git`, `.github`, `node_modules`, `dist`,
+   `.env` e `uploads` (o `--delete` remove na instância o que não existe
+   mais no repo, exceto o que está excluído).
+5. **Instalar dependências, buildar e reiniciar PM2** — via
+   `appleboy/ssh-action`: escreve `/opt/school-api/.env` a partir dos
+   secrets (encaminhados como variáveis de ambiente via `envs:`), roda
+   `npm ci && npm run build && npm prune --omit=dev`, depois
+   `pm2 startOrReload ecosystem.config.js --env production` e `pm2 save`.
 
 Rodar manualmente: aba **Actions** → *Deploy* → **Run workflow**.
 

@@ -4,115 +4,119 @@ on:
   push:
     branches:
       - main
-
   workflow_dispatch:
+
+concurrency:
+  group: deploy-lightsail
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    name: Deploy to Lightsail
     runs-on: ubuntu-latest
 
     steps:
-      - name: Criar chave SSH do Lightsail
-        shell: bash
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar chave SSH
         run: |
           mkdir -p ~/.ssh
+          echo "${{ secrets.LIGHTSAIL_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
 
-          {
-            echo "-----BEGIN RSA PRIVATE KEY-----"
-            echo "${{ secrets.LIGHTSAIL_SSH_KEY }}"
-            echo "-----END RSA PRIVATE KEY-----"
-          } > ~/.ssh/lightsail.pem
+      - name: Preparar diretório remoto
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
+            'sudo mkdir -p /opt/school-api && sudo chown -R $(whoami):$(whoami) /opt/school-api'
 
-          chmod 600 ~/.ssh/lightsail.pem
+      - name: Sincronizar arquivos via rsync
+        run: |
+          rsync -avz --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='dist' \
+            --exclude='.env' \
+            --exclude='uploads' \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            ./ ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/opt/school-api/
 
-      - name: Deploy via SSH
+      - name: Instalar dependências, buildar e reiniciar PM2
         uses: appleboy/ssh-action@v1.2.5
+        env:
+          API_PUBLIC_URL: ${{ secrets.API_PUBLIC_URL }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+          JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+          STORAGE_SIGNING_SECRET: ${{ secrets.STORAGE_SIGNING_SECRET }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ITAU_CLIENT_ID: ${{ secrets.ITAU_CLIENT_ID }}
+          ITAU_CLIENT_SECRET: ${{ secrets.ITAU_CLIENT_SECRET }}
+          ITAU_CERTIFICATE_PATH: ${{ secrets.ITAU_CERTIFICATE_PATH }}
+          ITAU_WEBHOOK_SECRET: ${{ secrets.ITAU_WEBHOOK_SECRET }}
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
-          key_path: /home/runner/.ssh/lightsail.pem
+          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           port: ${{ secrets.LIGHTSAIL_PORT || 22 }}
-
+          envs: API_PUBLIC_URL,FRONTEND_URL,CORS_ORIGIN,MONGODB_URI,JWT_ACCESS_SECRET,JWT_REFRESH_SECRET,STORAGE_SIGNING_SECRET,AWS_REGION,AWS_S3_BUCKET,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,ITAU_CLIENT_ID,ITAU_CLIENT_SECRET,ITAU_CERTIFICATE_PATH,ITAU_WEBHOOK_SECRET
           script: |
-            set -e
+            set -eo pipefail
+            cd /opt/school-api
 
-            APP_DIR="/opt/school-api"
-            REPO_URL="${{ secrets.GIT_REPOSITORY_URL }}"
-
-            echo "Preparando diretório da aplicação..."
-
-            if [ ! -d "$APP_DIR" ]; then
-              sudo mkdir -p "$APP_DIR"
-              sudo chown -R "$USER":"$USER" "$APP_DIR"
-            fi
-
-            if [ ! -d "$APP_DIR/.git" ]; then
-              echo "Primeiro deploy. Clonando repositório..."
-
-              git clone "$REPO_URL" "$APP_DIR"
-            else
-              echo "Repositório já existe. Atualizando..."
-            fi
-
-            cd "$APP_DIR"
-
-            echo "Criando arquivo .env..."
-
-            cat > .env <<'ENVEOF'
+            echo "📝 Gerando .env de produção..."
+            cat > .env <<EOF
             PORT=3000
-
-            API_PUBLIC_URL=${{ secrets.API_PUBLIC_URL }}
-            FRONTEND_URL=${{ secrets.FRONTEND_URL }}
-            CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
-
-            MONGODB_URI=${{ secrets.MONGODB_URI }}
-
-            JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}
-            JWT_ACCESS_EXPIRES=15m
-
-            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
-            JWT_REFRESH_EXPIRES=7d
-
-            UPLOAD_DIR=./uploads
-
-            STORAGE_SIGNING_SECRET=${{ secrets.STORAGE_SIGNING_SECRET }}
-
-            STORAGE_DRIVER=s3
-
-            AWS_REGION=${{ secrets.AWS_REGION }}
-            AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
-            AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-            ITAU_CLIENT_ID=${{ secrets.ITAU_CLIENT_ID }}
-            ITAU_CLIENT_SECRET=${{ secrets.ITAU_CLIENT_SECRET }}
-            ITAU_CERTIFICATE_PATH=${{ secrets.ITAU_CERTIFICATE_PATH }}
-            ITAU_WEBHOOK_SECRET=${{ secrets.ITAU_WEBHOOK_SECRET }}
-
             NODE_ENV=production
-            ENVEOF
+            API_PUBLIC_URL=${API_PUBLIC_URL}
+            FRONTEND_URL=${FRONTEND_URL}
+            CORS_ORIGIN=${CORS_ORIGIN}
+            MONGODB_URI=${MONGODB_URI}
+            JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+            JWT_ACCESS_EXPIRES=15m
+            JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+            JWT_REFRESH_EXPIRES=7d
+            UPLOAD_DIR=./uploads
+            STORAGE_SIGNING_SECRET=${STORAGE_SIGNING_SECRET}
+            STORAGE_DRIVER=s3
+            AWS_REGION=${AWS_REGION}
+            AWS_S3_BUCKET=${AWS_S3_BUCKET}
+            AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+            AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+            ITAU_CLIENT_ID=${ITAU_CLIENT_ID}
+            ITAU_CLIENT_SECRET=${ITAU_CLIENT_SECRET}
+            ITAU_CERTIFICATE_PATH=${ITAU_CERTIFICATE_PATH}
+            ITAU_WEBHOOK_SECRET=${ITAU_WEBHOOK_SECRET}
+            EOF
+            chmod 600 .env
 
-            echo "Atualizando código..."
+            mkdir -p uploads
 
-            git fetch origin main
-            git reset --hard origin/main
+            echo "📦 Instalando dependências (npm ci)..."
+            npm ci --no-audit --no-fund
 
-            echo "Instalando dependências..."
-
-            npm ci
-
-            echo "Executando build..."
-
+            echo "🔨 Build..."
             npm run build
 
-            echo "Reiniciando aplicação..."
+            echo "🧹 Removendo devDependencies pós-build..."
+            npm prune --omit=dev
 
-            if pm2 describe school-api > /dev/null 2>&1; then
-              pm2 reload ecosystem.config.js --env production
-            else
-              pm2 start ecosystem.config.js --env production
-            fi
+            echo "🔄 Garantindo daemon PM2 ativo..."
+            pm2 ping || true
 
+            echo "🔄 Iniciando/recarregando aplicação com PM2..."
+            pm2 startOrReload ecosystem.config.js --env production
+
+            echo "💾 Salvando lista de processos PM2..."
             pm2 save
 
-            echo "Deploy concluído com sucesso."
+            echo "✅ Deploy concluído!"
+            pm2 list

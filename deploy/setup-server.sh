@@ -3,6 +3,9 @@
 # rodar o backend (repo `school-api`) com Node.js + pm2 + nginx, e o MongoDB
 # em um container Docker isolado (sem expor a porta publicamente).
 #
+# O código chega na instância via rsync a cada deploy do GitHub Actions (não
+# por git clone) — este script só prepara o SO: Node, pm2, nginx e Mongo.
+#
 # Rode uma única vez, como o usuário com sudo (ex.: `ubuntu` no Lightsail):
 #   chmod +x setup-server.sh
 #   ./setup-server.sh
@@ -11,7 +14,6 @@
 
 set -euo pipefail
 
-REPO_URL="https://github.com/salesthiago/school-api.git"
 APP_DIR="/opt/school-api"
 APP_USER="$(whoami)"
 NODE_MAJOR=20
@@ -31,8 +33,8 @@ npm -v
 echo "==> Instalando pm2 globalmente"
 sudo npm install -g pm2
 
-echo "==> Instalando nginx e git"
-sudo apt-get install -y nginx git
+echo "==> Instalando nginx"
+sudo apt-get install -y nginx
 
 echo "==> Instalando Docker (para rodar o MongoDB isolado)"
 if ! command -v docker >/dev/null; then
@@ -54,14 +56,9 @@ else
   echo "    Container school-api-mongo já existe, pulando."
 fi
 
-echo "==> Clonando o repositório em ${APP_DIR} (repo público, sem chave de deploy)"
-if [ ! -d "$APP_DIR/.git" ]; then
-  sudo mkdir -p "$APP_DIR"
-  sudo chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
-  git clone "$REPO_URL" "$APP_DIR"
-else
-  echo "    ${APP_DIR} já é um repositório git, pulando o clone."
-fi
+echo "==> Criando diretório da aplicação em ${APP_DIR}"
+sudo mkdir -p "$APP_DIR"
+sudo chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
 
 echo "==> Configurando pm2 para iniciar no boot"
 pm2 startup systemd -u "$APP_USER" --hp "$HOME" | tail -n 1 | sudo bash || true
@@ -90,6 +87,6 @@ cat <<'EOF'
 
 5. Primeiro deploy: rode o workflow do GitHub Actions manualmente (aba
    Actions → Deploy → Run workflow) depois de cadastrar os secrets — ele
-   gera o .env, faz build e sobe o pm2 sozinho. Não precisa fazer nada manual
-   em ${APP_DIR} além do clone acima.
+   sincroniza o código via rsync, gera o .env, faz build e sobe o pm2
+   sozinho. Não precisa fazer nada manual em ${APP_DIR}.
 EOF
