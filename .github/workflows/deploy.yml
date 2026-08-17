@@ -2,22 +2,41 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch: {}
+    branches:
+      - main
+
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+
+      - name: Criar chave SSH do Lightsail
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+
+          {
+            echo "-----BEGIN RSA PRIVATE KEY-----"
+            echo "${{ secrets.LIGHTSAIL_SSH_KEY }}"
+            echo "-----END RSA PRIVATE KEY-----"
+          } > ~/.ssh/lightsail.pem
+
+          chmod 600 ~/.ssh/lightsail.pem
+
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USER }}
-          key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          key_path: /home/runner/.ssh/lightsail.pem
           port: ${{ secrets.LIGHTSAIL_PORT || 22 }}
+
           script: |
             set -e
+
             cd /opt/school-api
 
             cat > .env <<'ENVEOF'
@@ -25,28 +44,52 @@ jobs:
             API_PUBLIC_URL=${{ secrets.API_PUBLIC_URL }}
             FRONTEND_URL=${{ secrets.FRONTEND_URL }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+
             MONGODB_URI=${{ secrets.MONGODB_URI }}
+
             JWT_ACCESS_SECRET=${{ secrets.JWT_ACCESS_SECRET }}
             JWT_ACCESS_EXPIRES=15m
+
             JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
             JWT_REFRESH_EXPIRES=7d
+
             UPLOAD_DIR=./uploads
+
             STORAGE_SIGNING_SECRET=${{ secrets.STORAGE_SIGNING_SECRET }}
+
             STORAGE_DRIVER=s3
+
             AWS_REGION=${{ secrets.AWS_REGION }}
             AWS_S3_BUCKET=${{ secrets.AWS_S3_BUCKET }}
             AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
             ITAU_CLIENT_ID=${{ secrets.ITAU_CLIENT_ID }}
             ITAU_CLIENT_SECRET=${{ secrets.ITAU_CLIENT_SECRET }}
             ITAU_CERTIFICATE_PATH=${{ secrets.ITAU_CERTIFICATE_PATH }}
             ITAU_WEBHOOK_SECRET=${{ secrets.ITAU_WEBHOOK_SECRET }}
+
             NODE_ENV=production
             ENVEOF
 
+            echo "Atualizando código..."
+
             git fetch origin main
             git reset --hard origin/main
+
+            echo "Instalando dependências..."
+
             npm ci
+
+            echo "Executando build..."
+
             npm run build
-            pm2 reload ecosystem.config.js --env production || pm2 start ecosystem.config.js --env production
+
+            echo "Reiniciando aplicação..."
+
+            pm2 reload ecosystem.config.js --env production || \
+              pm2 start ecosystem.config.js --env production
+
             pm2 save
+
+            echo "Deploy concluído."
