@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Criar chave SSH do Lightsail
         shell: bash
         run: |
@@ -37,10 +36,31 @@ jobs:
           script: |
             set -e
 
-            cd /opt/school-api
+            APP_DIR="/opt/school-api"
+            REPO_URL="${{ secrets.GIT_REPOSITORY_URL }}"
+
+            echo "Preparando diretório da aplicação..."
+
+            if [ ! -d "$APP_DIR" ]; then
+              sudo mkdir -p "$APP_DIR"
+              sudo chown -R "$USER":"$USER" "$APP_DIR"
+            fi
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              echo "Primeiro deploy. Clonando repositório..."
+
+              git clone "$REPO_URL" "$APP_DIR"
+            else
+              echo "Repositório já existe. Atualizando..."
+            fi
+
+            cd "$APP_DIR"
+
+            echo "Criando arquivo .env..."
 
             cat > .env <<'ENVEOF'
             PORT=3000
+
             API_PUBLIC_URL=${{ secrets.API_PUBLIC_URL }}
             FRONTEND_URL=${{ secrets.FRONTEND_URL }}
             CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
@@ -87,9 +107,12 @@ jobs:
 
             echo "Reiniciando aplicação..."
 
-            pm2 reload ecosystem.config.js --env production || \
+            if pm2 describe school-api > /dev/null 2>&1; then
+              pm2 reload ecosystem.config.js --env production
+            else
               pm2 start ecosystem.config.js --env production
+            fi
 
             pm2 save
 
-            echo "Deploy concluído."
+            echo "Deploy concluído com sucesso."
