@@ -29,6 +29,15 @@ export class User {
 
   @Prop()
   refreshTokenHash?: string;
+
+  @Prop()
+  avatarKey?: string;
+
+  @Prop({ type: { instagram: String, twitter: String }, _id: false })
+  socialLinks?: {
+    instagram?: string;
+    twitter?: string;
+  };
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
