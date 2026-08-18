@@ -27,6 +27,9 @@ export class User {
   @Prop({ default: true })
   active: boolean;
 
+  @Prop({ type: Date, default: null })
+  deletedAt?: Date | null;
+
   @Prop()
   refreshTokenHash?: string;
 

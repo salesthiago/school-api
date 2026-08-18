@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Patch,
   Post,
   Query,
@@ -18,6 +20,7 @@ import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorato
 import { UsersService } from './users.service';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
 
 const ANY_ROLE = [Role.STUDENT, Role.TEACHER, Role.ADMIN];
 
@@ -59,5 +62,20 @@ export class UsersController {
   @Post()
   create(@Body() dto: CreateStaffUserDto) {
     return this.usersService.create(dto, dto.role);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.usersService.getProfile(id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: UpdateUserAdminDto) {
+    return this.usersService.update(id, dto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return this.usersService.softDelete(id, user.userId);
   }
 }

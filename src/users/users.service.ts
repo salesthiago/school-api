@@ -1,4 +1,10 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
@@ -6,6 +12,7 @@ import { randomUUID } from 'crypto';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
 import { Role } from '../common/enums/role.enum';
 import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
 
@@ -35,7 +42,7 @@ export class UsersService {
   }
 
   findByEmail(email: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email: email.toLowerCase() });
+    return this.userModel.findOne({ email: email.toLowerCase(), deletedAt: null });
   }
 
   async findById(id: string): Promise<UserDocument> {
@@ -45,7 +52,34 @@ export class UsersService {
   }
 
   findAll(filter: Partial<{ role: Role; institutionId: string }> = {}) {
-    return this.userModel.find(filter).select('-passwordHash -refreshTokenHash');
+    return this.userModel
+      .find({ ...filter, deletedAt: null })
+      .select('-passwordHash -refreshTokenHash');
+  }
+
+  async update(id: string, dto: UpdateUserAdminDto) {
+    const user = await this.findById(id);
+    if (dto.email && dto.email.toLowerCase() !== user.email) {
+      const existing = await this.userModel.findOne({ email: dto.email.toLowerCase() });
+      if (existing) throw new ConflictException('E-mail já cadastrado');
+      user.email = dto.email.toLowerCase();
+    }
+    if (dto.name !== undefined) user.name = dto.name;
+    if (dto.phone !== undefined) user.phone = dto.phone;
+    if (dto.role !== undefined) user.role = dto.role;
+    if (dto.active !== undefined) user.active = dto.active;
+    await user.save();
+    return this.toProfile(user);
+  }
+
+  async softDelete(id: string, currentUserId: string) {
+    if (id === currentUserId) {
+      throw new ForbiddenException('Você não pode excluir a própria conta');
+    }
+    const user = await this.findById(id);
+    user.deletedAt = new Date();
+    user.refreshTokenHash = undefined;
+    await user.save();
   }
 
   async setRefreshTokenHash(userId: string, refreshTokenHash: string | null) {
@@ -92,6 +126,7 @@ export class UsersService {
       phone: user.phone,
       role: user.role,
       institutionId: user.institutionId,
+      active: user.active,
       socialLinks: user.socialLinks,
       avatarUrl: user.avatarKey
         ? await this.storage.getSignedUrl(user.avatarKey, AVATAR_URL_TTL_SECONDS)
