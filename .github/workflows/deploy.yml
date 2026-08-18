@@ -19,6 +19,18 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependências e buildar
+        run: |
+          npm ci
+          npm run build
+
       - name: Configurar chave SSH
         run: |
           mkdir -p ~/.ssh
@@ -32,19 +44,14 @@ jobs:
             ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }} \
             'sudo mkdir -p /opt/school-api && sudo chown -R $(whoami):$(whoami) /opt/school-api'
 
-      - name: Sincronizar arquivos via rsync
+      - name: Sincronizar build via rsync
         run: |
           rsync -avz --delete \
-            --exclude='.git' \
-            --exclude='.github' \
-            --exclude='node_modules' \
-            --exclude='dist' \
-            --exclude='.env' \
-            --exclude='uploads' \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            ./ ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/opt/school-api/
+            dist package.json package-lock.json ecosystem.config.js \
+            ${{ secrets.LIGHTSAIL_USER }}@${{ secrets.LIGHTSAIL_HOST }}:/opt/school-api/
 
-      - name: Instalar dependências, buildar e reiniciar PM2
+      - name: Instalar dependências de produção e reiniciar PM2
         uses: appleboy/ssh-action@v1.2.5
         env:
           API_PUBLIC_URL: ${{ secrets.API_PUBLIC_URL }}
@@ -100,14 +107,8 @@ jobs:
 
             mkdir -p uploads
 
-            echo "📦 Instalando dependências (npm ci)..."
-            npm ci --no-audit --no-fund
-
-            echo "🔨 Build..."
-            npm run build
-
-            echo "🧹 Removendo devDependencies pós-build..."
-            npm prune --omit=dev
+            echo "📦 Instalando dependências de produção (sem devDependencies, sem build aqui)..."
+            npm ci --omit=dev --no-audit --no-fund
 
             echo "🔄 Garantindo daemon PM2 ativo..."
             pm2 ping || true
