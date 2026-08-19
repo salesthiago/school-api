@@ -1,4 +1,5 @@
 import { BadGatewayException, BadRequestException, Injectable } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { SettingsService } from '../settings/settings.service';
 
 export interface UploadedVideo {
@@ -7,18 +8,37 @@ export interface UploadedVideo {
   thumbnailUrl?: string;
 }
 
+export interface DirectUploadCredentials {
+  tusEndpoint: string;
+  videoId: string;
+  libraryId: string;
+  authorizationSignature: string;
+  authorizationExpire: number;
+  playbackUrl: string;
+  thumbnailUrl?: string;
+}
+
 const BUNNY_STREAM_API = 'https://video.bunnycdn.com';
+const BUNNY_TUS_ENDPOINT = 'https://video.bunnycdn.com/tusupload';
+const DIRECT_UPLOAD_TTL_SECONDS = 60 * 60 * 3; // 3h para dar tempo de enviar vídeos grandes
 
 /**
  * Integração com a API de vídeo do Bunny.net (Bunny Stream).
  * Credenciais vêm do SettingsService (gerenciadas pelo admin), não de env vars,
  * para que a tela de configuração possa alterá-las em tempo real.
+ *
+ * O upload do arquivo em si NUNCA passa pelo nosso backend — o vídeo vai
+ * direto do navegador do professor para o Bunny.net via TUS (protocolo de
+ * upload resumível), usando uma assinatura de curta duração gerada aqui.
+ * Isso evita estourar o limite de tamanho do nginx/memória da instância e
+ * elimina o "CORS" que na real era o proxy rejeitando o corpo da requisição
+ * antes de chegar no Node.
  */
 @Injectable()
 export class BunnyStreamService {
   constructor(private readonly settingsService: SettingsService) {}
 
-  async uploadVideo(title: string, buffer: Buffer): Promise<UploadedVideo> {
+  async createDirectUpload(title: string): Promise<DirectUploadCredentials> {
     const config = await this.settingsService.getBunnyProviderConfig();
     if (!config) {
       throw new BadRequestException('Integração com o Bunny.net não está configurada ou está desativada');
@@ -34,16 +54,17 @@ export class BunnyStreamService {
     }
     const created = (await createResponse.json()) as { guid: string };
 
-    const uploadResponse = await fetch(
-      `${BUNNY_STREAM_API}/library/${config.libraryId}/videos/${created.guid}`,
-      { method: 'PUT', headers: { AccessKey: config.apiKey }, body: new Uint8Array(buffer) },
-    );
-    if (!uploadResponse.ok) {
-      throw new BadGatewayException('Falha ao enviar o arquivo de vídeo para o Bunny.net');
-    }
+    const authorizationExpire = Math.floor(Date.now() / 1000) + DIRECT_UPLOAD_TTL_SECONDS;
+    const authorizationSignature = createHash('sha256')
+      .update(`${config.libraryId}${config.apiKey}${authorizationExpire}${created.guid}`)
+      .digest('hex');
 
     return {
-      externalId: created.guid,
+      tusEndpoint: BUNNY_TUS_ENDPOINT,
+      videoId: created.guid,
+      libraryId: config.libraryId,
+      authorizationSignature,
+      authorizationExpire,
       playbackUrl: `https://iframe.mediadelivery.net/embed/${config.libraryId}/${created.guid}`,
       thumbnailUrl: config.pullZoneHostname
         ? `https://${config.pullZoneHostname}/${created.guid}/thumbnail.jpg`

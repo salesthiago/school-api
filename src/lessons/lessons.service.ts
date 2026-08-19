@@ -7,6 +7,7 @@ import { Course, CourseDocument } from '../courses/schemas/course.schema';
 import { Attachment, AttachmentDocument } from '../attachments/schemas/attachment.schema';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
+import { CompleteVideoUploadDto } from './dto/complete-video-upload.dto';
 import { JwtUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
 import { BunnyStreamService } from '../video/bunny-stream.service';
@@ -59,18 +60,36 @@ export class LessonsService {
     await lesson.deleteOne();
   }
 
-  async uploadVideo(id: string, file: { originalname: string; buffer: Buffer }, user: JwtUser) {
+  /**
+   * Passo 1 do upload direto: cria o vídeo no Bunny e devolve uma
+   * assinatura de curta duração para o navegador enviar o arquivo direto
+   * via TUS, sem passar pelo nosso backend.
+   */
+  async initVideoUpload(id: string, user: JwtUser) {
     const lesson = await this.findById(id);
     await this.assertModuleOwnership(lesson.moduleId.toString(), user);
-    const uploaded = await this.bunnyStream.uploadVideo(file.originalname, file.buffer);
+    return this.bunnyStream.createDirectUpload(lesson.title);
+  }
+
+  /** Passo 2: o navegador confirma que o upload direto terminou. */
+  async completeVideoUpload(id: string, dto: CompleteVideoUploadDto, user: JwtUser) {
+    const lesson = await this.findById(id);
+    await this.assertModuleOwnership(lesson.moduleId.toString(), user);
+    const previousExternalId = lesson.video?.externalId;
+
     lesson.video = {
       provider: 'bunny',
-      externalId: uploaded.externalId,
-      playbackUrl: uploaded.playbackUrl,
-      thumbnailUrl: uploaded.thumbnailUrl,
-      durationSeconds: lesson.video?.durationSeconds ?? 0,
+      externalId: dto.videoId,
+      playbackUrl: dto.playbackUrl,
+      thumbnailUrl: dto.thumbnailUrl,
+      durationSeconds: 0,
+      status: 'processing',
     };
     await lesson.save();
+
+    if (previousExternalId && previousExternalId !== dto.videoId) {
+      await this.bunnyStream.deleteVideo(previousExternalId);
+    }
     return lesson;
   }
 

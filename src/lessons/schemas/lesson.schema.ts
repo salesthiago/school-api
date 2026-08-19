@@ -19,6 +19,10 @@ export class VideoMeta {
 
   @Prop()
   thumbnailUrl?: string;
+
+  /** 'processing' assim que o upload direto termina; o Bunny confirma via webhook. */
+  @Prop({ enum: ['processing', 'ready', 'error'], default: 'processing' })
+  status?: string;
 }
 export const VideoMetaSchema = SchemaFactory.createForClass(VideoMeta);
 

@@ -124,6 +124,7 @@ próximo deploy.
 | `ITAU_CLIENT_SECRET`     | credencial real do Itaú                                         |
 | `ITAU_CERTIFICATE_PATH`  | caminho do certificado **já presente na instância** (veja nota) |
 | `ITAU_WEBHOOK_SECRET`    | gerar com `openssl rand -hex 32` (ou valor combinado com o Itaú)|
+| `BUNNY_WEBHOOK_SECRET`   | gerar com `openssl rand -hex 32` (veja seção 6 abaixo)          |
 
 Os campos `PORT`, `JWT_ACCESS_EXPIRES`, `JWT_REFRESH_EXPIRES`, `UPLOAD_DIR`,
 `STORAGE_DRIVER` e `NODE_ENV` não mudam entre deploys, então ficam fixos
@@ -164,7 +165,26 @@ separados (cada um com log próprio no Actions):
 
 Rodar manualmente: aba **Actions** → *Deploy* → **Run workflow**.
 
-## 6. Depois do deploy
+## 6. Webhook do Bunny.net (status de processamento de vídeo)
+
+O upload da aula vai direto do navegador do professor para o Bunny.net (TUS)
+— o backend nunca vê os bytes do vídeo. Quando o TUS termina, o Bunny ainda
+precisa *processar/transcodificar* o vídeo, o que leva um tempo; só depois
+disso ele fica de fato pronto para os alunos assistirem. Para o professor
+ser avisado quando isso acontece (via o sino de notificações), configure
+manualmente no painel do Bunny.net, em **Video Library → API → Webhook
+URL**:
+
+```
+https://api.SEU-DOMINIO.com/api/video/webhook/bunny?token=SEU_BUNNY_WEBHOOK_SECRET
+```
+
+Use o mesmo valor do secret `BUNNY_WEBHOOK_SECRET` cadastrado no GitHub. Sem
+essa configuração manual no Bunny, o upload continua funcionando
+normalmente — só a notificação de "vídeo pronto"/"falha no processamento"
+não é disparada.
+
+## 7. Depois do deploy
 
 - Logs: `pm2 logs gpschool-backend`
 - Status: `pm2 status`

@@ -8,14 +8,12 @@ import {
   Patch,
   Post,
   Query,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { LessonsService } from './lessons.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
+import { CompleteVideoUploadDto } from './dto/complete-video-upload.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -65,16 +63,22 @@ export class LessonsController {
     return this.lessonsService.remove(id, user);
   }
 
-  @Post(':id/video')
+  @Post(':id/video/init')
   @UseGuards(RolesGuard)
   @Roles(Role.TEACHER, Role.ADMIN)
-  @UseInterceptors(FileInterceptor('file'))
-  uploadVideo(
+  initVideoUpload(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return this.lessonsService.initVideoUpload(id, user);
+  }
+
+  @Post(':id/video/complete')
+  @UseGuards(RolesGuard)
+  @Roles(Role.TEACHER, Role.ADMIN)
+  completeVideoUpload(
     @Param('id') id: string,
-    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: CompleteVideoUploadDto,
     @CurrentUser() user: JwtUser,
   ) {
-    return this.lessonsService.uploadVideo(id, file, user);
+    return this.lessonsService.completeVideoUpload(id, dto, user);
   }
 
   /**
