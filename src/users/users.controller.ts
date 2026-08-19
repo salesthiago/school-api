@@ -21,6 +21,7 @@ import { UsersService } from './users.service';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 const ANY_ROLE = [Role.STUDENT, Role.TEACHER, Role.ADMIN];
 
@@ -49,8 +50,17 @@ export class UsersController {
     return this.usersService.setAvatar(user.userId, file);
   }
 
+  /**
+   * Professores também acessam esta rota, mas só para a listagem de alunos:
+   * o filtro de papel é forçado no servidor, ignorando o que vier na query,
+   * para que um professor nunca consiga listar outros professores/admins.
+   */
   @Get()
-  findAll(@Query('role') role?: Role) {
+  @Roles(Role.ADMIN, Role.TEACHER)
+  findAll(@Query('role') role: Role | undefined, @CurrentUser() user: JwtUser) {
+    if (user.role === Role.TEACHER) {
+      return this.usersService.findAll({ role: Role.STUDENT });
+    }
     return this.usersService.findAll(role ? { role } : {});
   }
 
@@ -72,6 +82,11 @@ export class UsersController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateUserAdminDto) {
     return this.usersService.update(id, dto);
+  }
+
+  @Patch(':id/password')
+  resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
+    return this.usersService.resetPassword(id, dto);
   }
 
   @Delete(':id')

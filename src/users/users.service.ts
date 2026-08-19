@@ -10,9 +10,11 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { User, UserDocument } from './schemas/user.schema';
+import { Enrollment, EnrollmentDocument, EnrollmentStatus } from '../enrollments/schemas/enrollment.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Role } from '../common/enums/role.enum';
 import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
 
@@ -22,6 +24,7 @@ const AVATAR_URL_TTL_SECONDS = 60 * 60;
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
+    @InjectModel(Enrollment.name) private enrollmentModel: Model<EnrollmentDocument>,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
   ) {}
 
@@ -51,10 +54,25 @@ export class UsersService {
     return user;
   }
 
-  findAll(filter: Partial<{ role: Role; institutionId: string }> = {}) {
-    return this.userModel
+  async findAll(filter: Partial<{ role: Role; institutionId: string }> = {}) {
+    const users = await this.userModel
       .find({ ...filter, deletedAt: null })
       .select('-passwordHash -refreshTokenHash');
+
+    if (filter.role !== Role.STUDENT) {
+      return users;
+    }
+
+    const studentIds = users.map((u) => u._id);
+    const enrolledIds = new Set(
+      (
+        await this.enrollmentModel.distinct('studentId', {
+          studentId: { $in: studentIds },
+          status: EnrollmentStatus.ACTIVE,
+        })
+      ).map((id) => id.toString()),
+    );
+    return users.map((u) => ({ ...u.toJSON(), hasEnrollments: enrolledIds.has(u.id) }));
   }
 
   async update(id: string, dto: UpdateUserAdminDto) {
@@ -70,6 +88,13 @@ export class UsersService {
     if (dto.active !== undefined) user.active = dto.active;
     await user.save();
     return this.toProfile(user);
+  }
+
+  async resetPassword(id: string, dto: ResetPasswordDto) {
+    const user = await this.findById(id);
+    user.passwordHash = await bcrypt.hash(dto.password, 10);
+    user.refreshTokenHash = undefined;
+    await user.save();
   }
 
   async softDelete(id: string, currentUserId: string) {
