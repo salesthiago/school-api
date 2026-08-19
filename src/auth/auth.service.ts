@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import type { StringValue } from 'ms';
 import * as bcrypt from 'bcryptjs';
+import { createHash } from 'crypto';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -43,7 +44,7 @@ export class AuthService {
     if (!user.refreshTokenHash) {
       throw new UnauthorizedException('Sessão inválida');
     }
-    const matches = await bcrypt.compare(refreshToken, user.refreshTokenHash);
+    const matches = await bcrypt.compare(this.digestToken(refreshToken), user.refreshTokenHash);
     if (!matches) {
       throw new UnauthorizedException('Sessão inválida');
     }
@@ -78,9 +79,22 @@ export class AuthService {
       expiresIn: (this.config.get<string>('JWT_REFRESH_EXPIRES') ?? '7d') as StringValue,
     });
 
-    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+    const refreshTokenHash = await bcrypt.hash(this.digestToken(refreshToken), 10);
     await this.usersService.setRefreshTokenHash(sub, refreshTokenHash);
 
     return { accessToken, refreshToken };
+  }
+
+  /**
+   * bcrypt trunca a entrada em 72 bytes. Um JWT de refresh inteiro passa
+   * bastante disso, e os primeiros ~72 bytes (header + início do payload)
+   * são idênticos entre todos os tokens emitidos para o mesmo usuário (iat/exp
+   * ficam no fim do payload) — ou seja, comparar o JWT bruto com bcrypt faz
+   * QUALQUER token válido (antigo ou até forjado com o mesmo secret) bater
+   * com o hash armazenado, e a rotação de refresh token nunca invalida nada
+   * de fato. Resumimos o token para um digest de tamanho fixo antes do bcrypt.
+   */
+  private digestToken(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
   }
 }
