@@ -43,6 +43,20 @@ export class EnrollmentsService {
     );
   }
 
+  async enrollFree(studentId: string, moduleId: string, courseId: string) {
+    return this.enrollmentModel.findOneAndUpdate(
+      { studentId, moduleId },
+      {
+        studentId,
+        moduleId,
+        courseId,
+        source: EnrollmentSource.FREE,
+        status: EnrollmentStatus.ACTIVE,
+      },
+      { upsert: true, new: true },
+    );
+  }
+
   async grantManually(
     studentId: string,
     moduleId: string,

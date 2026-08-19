@@ -10,10 +10,6 @@ export class CreateCourseDto {
   description?: string;
 
   @IsOptional()
-  @IsString()
-  coverImageUrl?: string;
-
-  @IsOptional()
   @IsBoolean()
   sellAsBundle?: boolean;
 

@@ -36,8 +36,8 @@ export class Lesson {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   teacherId: Types.ObjectId;
 
-  @Prop({ type: VideoMetaSchema, required: true })
-  video: VideoMeta;
+  @Prop({ type: VideoMetaSchema })
+  video?: VideoMeta;
 
   @Prop({ required: true, default: 0 })
   order: number;

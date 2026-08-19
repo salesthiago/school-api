@@ -54,10 +54,13 @@ chmod +x setup-server.sh
 ./setup-server.sh
 ```
 
-Isso instala Node 20, pm2, nginx e Docker, sobe o MongoDB (container
-isolado, só em `127.0.0.1`) e cria `/opt/school-api` (vazio — o código
-chega ali via rsync a cada deploy, não por `git clone`). Ao final ele
-imprime os passos manuais restantes (chave SSH, nginx, firewall, certbot).
+Isso instala Node 20, pm2 e nginx, e cria `/opt/school-api` (vazio — o
+código chega ali via rsync a cada deploy, não por `git clone`). Ao final ele
+imprime os passos manuais restantes (MongoDB, chave SSH, nginx, firewall,
+certbot).
+
+> **MongoDB**: não usamos Docker neste projeto — o MongoDB é instalado e
+> gerenciado manualmente na instância (nativo, via pacote do sistema).
 
 ## 3. Chave SSH para o GitHub Actions conectar na instância
 
@@ -166,7 +169,7 @@ Rodar manualmente: aba **Actions** → *Deploy* → **Run workflow**.
 - Logs: `pm2 logs gpschool-backend`
 - Status: `pm2 status`
 - Reiniciar manualmente: `pm2 restart gpschool-backend`
-- Logs do Mongo: `sudo docker logs school-api-mongo`
+- Logs do Mongo: `sudo journalctl -u mongod -f`
 
 ## Checklist de segurança
 

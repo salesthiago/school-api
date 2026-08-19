@@ -31,6 +31,9 @@ export class CourseModule {
 
   @Prop({ default: 0, min: 0 })
   workloadHours: number;
+
+  @Prop()
+  coverImageKey?: string;
 }
 
 export const CourseModuleSchema = SchemaFactory.createForClass(CourseModule);

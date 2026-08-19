@@ -63,7 +63,9 @@ export class UsersService {
       return users;
     }
 
-    const studentIds = users.map((u) => u._id);
+    // studentId é gravado como string neste projeto, não ObjectId de fato —
+    // usar string aqui para o $in bater com o que está persistido.
+    const studentIds = users.map((u) => u._id.toString());
     const enrolledIds = new Set(
       (
         await this.enrollmentModel.distinct('studentId', {

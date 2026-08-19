@@ -14,9 +14,10 @@ export class CreateLessonDto {
   @IsString()
   description?: string;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => VideoMetaDto)
-  video: VideoMetaDto;
+  video?: VideoMetaDto;
 
   @IsOptional()
   @IsNumber()
@@ -26,4 +27,8 @@ export class CreateLessonDto {
   @IsOptional()
   @IsBoolean()
   mandatory?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
 }

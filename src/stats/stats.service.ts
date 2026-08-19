@@ -48,9 +48,11 @@ export class StatsService {
 
   async teacherOverview(teacherId: string) {
     const courses = await this.courseModel.find({ teacherId }).select('_id');
-    const courseIds = courses.map((c) => c._id);
+    // courseId/moduleId são gravados como string neste projeto, não ObjectId
+    // de fato — usar string aqui para os $in baterem com o que está persistido.
+    const courseIds = courses.map((c) => c._id.toString());
     const modules = await this.moduleModel.find({ courseId: { $in: courseIds } }).select('_id');
-    const moduleIds = modules.map((m) => m._id);
+    const moduleIds = modules.map((m) => m._id.toString());
 
     const [totalStudents, totalEnrollments, enrollmentsByDay] = await Promise.all([
       this.enrollmentModel

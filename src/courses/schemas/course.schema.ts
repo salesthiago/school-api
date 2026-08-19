@@ -12,7 +12,7 @@ export class Course {
   description?: string;
 
   @Prop()
-  coverImageUrl?: string;
+  coverImageKey?: string;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   teacherId: Types.ObjectId;

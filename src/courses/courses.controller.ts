@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -21,12 +34,12 @@ export class CoursesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.TEACHER, Role.ADMIN)
   findMine(@CurrentUser() user: JwtUser) {
-    return this.coursesService.findAllForTeacher(user.userId);
+    return this.coursesService.findMine(user);
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.coursesService.findById(id);
+    return this.coursesService.findByIdPublic(id);
   }
 
   @Post()
@@ -48,5 +61,17 @@ export class CoursesController {
   @Roles(Role.TEACHER, Role.ADMIN)
   remove(@Param('id') id: string, @CurrentUser() user: JwtUser) {
     return this.coursesService.remove(id, user);
+  }
+
+  @Post(':id/cover')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.TEACHER, Role.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadCover(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.coursesService.uploadCover(id, file, user);
   }
 }

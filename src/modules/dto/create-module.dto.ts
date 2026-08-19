@@ -29,4 +29,8 @@ export class CreateModuleDto {
   @IsNumber()
   @Min(0)
   workloadHours?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  published?: boolean;
 }

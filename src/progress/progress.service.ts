@@ -27,7 +27,7 @@ export class ProgressService {
 
     const percentage = Math.min(
       100,
-      Math.round((dto.watchedSeconds / Math.max(lesson.video.durationSeconds, 1)) * 100),
+      Math.round((dto.watchedSeconds / Math.max(lesson.video?.durationSeconds ?? 0, 1)) * 100),
     );
     const completed = percentage >= courseModule.completionThresholdPercent;
 
