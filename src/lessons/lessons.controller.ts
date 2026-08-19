@@ -81,6 +81,13 @@ export class LessonsController {
     return this.lessonsService.completeVideoUpload(id, dto, user);
   }
 
+  @Delete(':id/video')
+  @UseGuards(RolesGuard)
+  @Roles(Role.TEACHER, Role.ADMIN)
+  removeVideo(@Param('id') id: string, @CurrentUser() user: JwtUser) {
+    return this.lessonsService.removeVideo(id, user);
+  }
+
   /**
    * Vídeo/anexos de aula só ficam visíveis para quem está matriculado no
    * módulo — professor/admin sempre podem pré-visualizar o próprio conteúdo.

@@ -93,6 +93,19 @@ export class LessonsService {
     return lesson;
   }
 
+  /** Remove o vídeo da aula (ex.: falha de transcodificação) sem excluir a aula em si. */
+  async removeVideo(id: string, user: JwtUser) {
+    const lesson = await this.findById(id);
+    await this.assertModuleOwnership(lesson.moduleId.toString(), user);
+    const externalId = lesson.video?.externalId;
+    lesson.video = undefined;
+    await lesson.save();
+    if (externalId) {
+      await this.bunnyStream.deleteVideo(externalId);
+    }
+    return lesson;
+  }
+
   /** Usado pelo controller para checar matrícula: resolve a aula até o módulo dono. */
   async resolveModuleId(lessonId: string): Promise<string> {
     const lesson = await this.findById(lessonId);
