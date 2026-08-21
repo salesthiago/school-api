@@ -9,9 +9,18 @@ export class Institution {
   name: string;
 
   @Prop()
-  logoUrl?: string;
+  logoKey?: string;
 
-  @Prop({ default: '#1565C0' })
+  @Prop()
+  loginBackgroundKey?: string;
+
+  @Prop()
+  registerBackgroundKey?: string;
+
+  @Prop()
+  studentBannerKey?: string;
+
+  @Prop({ default: '#6C4BF4' })
   primaryColor: string;
 
   @Prop({ default: '#26A69A' })
