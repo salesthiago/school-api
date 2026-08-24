@@ -1,4 +1,14 @@
-import { Body, Controller, ForbiddenException, HttpCode, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  HttpCode,
+  Logger,
+  Post,
+  Query,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
@@ -16,6 +26,8 @@ const ERROR_STATUSES = [5, 6]; // Error, UploadFailed
  */
 @Controller('video')
 export class VideoController {
+  private readonly logger = new Logger(VideoController.name);
+
   constructor(
     @InjectModel(Lesson.name) private lessonModel: Model<LessonDocument>,
     private notificationsService: NotificationsService,
@@ -24,6 +36,10 @@ export class VideoController {
 
   @Post('webhook/bunny')
   @HttpCode(200)
+  // O payload real do Bunny traz campos além de VideoGuid/Status (ex: VideoLibraryId).
+  // O ValidationPipe global usa forbidNonWhitelisted, que rejeitaria (400) esse payload
+  // antes de chegar aqui — por isso sobrescrevemos com whitelist only para este endpoint.
+  @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
   async handleBunnyWebhook(@Body() dto: BunnyWebhookDto, @Query('token') token?: string) {
     const expected = this.config.get<string>('BUNNY_WEBHOOK_SECRET') ?? 'dev-bunny-webhook-secret';
     if (token !== expected) {
@@ -32,6 +48,7 @@ export class VideoController {
 
     const lesson = await this.lessonModel.findOne({ 'video.externalId': dto.VideoGuid });
     if (!lesson || !lesson.video) {
+      this.logger.warn(`Webhook Bunny: nenhuma lesson encontrada para VideoGuid=${dto.VideoGuid}`);
       return { ok: true };
     }
 
