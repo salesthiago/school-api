@@ -12,4 +12,9 @@ export class CompletionController {
   checkModule(@Param('moduleId') moduleId: string, @CurrentUser() user: JwtUser) {
     return this.completionService.checkModule(user.userId, moduleId);
   }
+
+  @Get('course/:courseId')
+  checkCourseTrack(@Param('courseId') courseId: string, @CurrentUser() user: JwtUser) {
+    return this.completionService.checkCourseTrack(user.userId, courseId);
+  }
 }

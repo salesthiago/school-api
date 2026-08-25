@@ -12,7 +12,8 @@ import { InstitutionsService } from '../institutions/institutions.service';
 export interface GenerateCertificateParams {
   studentId: string;
   studentName: string;
-  moduleId: string;
+  /** Ausente para certificado da trilha de aulas avulsas do curso (sem módulo). */
+  moduleId?: string;
   moduleTitle: string;
   courseId: string;
   teacherName: string;
@@ -31,7 +32,8 @@ export class CertificatesService {
   async generate(params: GenerateCertificateParams): Promise<CertificateDocument> {
     const existing = await this.certificateModel.findOne({
       studentId: params.studentId,
-      moduleId: params.moduleId,
+      moduleId: params.moduleId ?? null,
+      courseId: params.courseId,
     });
     if (existing) return existing;
 

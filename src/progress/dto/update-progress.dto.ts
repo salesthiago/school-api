@@ -1,11 +1,13 @@
-import { IsMongoId, IsNumber, Min } from 'class-validator';
+import { IsMongoId, IsNumber, IsOptional, Min } from 'class-validator';
 
 export class UpdateProgressDto {
   @IsMongoId()
   lessonId: string;
 
+  /** Ausente quando a aula é avulsa (sem módulo). */
+  @IsOptional()
   @IsMongoId()
-  moduleId: string;
+  moduleId?: string;
 
   @IsNumber()
   @Min(0)

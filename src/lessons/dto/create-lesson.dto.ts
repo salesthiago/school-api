@@ -4,7 +4,12 @@ import { VideoMetaDto } from './video-meta.dto';
 
 export class CreateLessonDto {
   @IsMongoId()
-  moduleId: string;
+  courseId: string;
+
+  /** Ausente = aula avulsa, direto no curso, sem módulo. */
+  @IsOptional()
+  @IsMongoId()
+  moduleId?: string;
 
   @IsString()
   @MinLength(3)

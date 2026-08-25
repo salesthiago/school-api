@@ -34,8 +34,12 @@ export class Lesson {
   @Prop()
   description?: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: true, index: true })
-  moduleId: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Course', required: true, index: true })
+  courseId: Types.ObjectId;
+
+  /** Ausente quando a aula é avulsa (pertence direto ao curso, sem módulo). */
+  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: false, index: true })
+  moduleId?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   teacherId: Types.ObjectId;

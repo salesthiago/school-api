@@ -7,6 +7,7 @@ import { PAYMENT_PROVIDER } from './providers/payment-provider.interface';
 import { ItauPaymentProvider } from './providers/itau-payment.provider';
 import { OrdersModule } from '../orders/orders.module';
 import { ModulesModule } from '../modules/modules.module';
+import { CoursesModule } from '../courses/courses.module';
 import { EnrollmentsModule } from '../enrollments/enrollments.module';
 import { AuditModule } from '../audit/audit.module';
 
@@ -15,6 +16,7 @@ import { AuditModule } from '../audit/audit.module';
     MongooseModule.forFeature([{ name: Payment.name, schema: PaymentSchema }]),
     OrdersModule,
     ModulesModule,
+    CoursesModule,
     EnrollmentsModule,
     AuditModule,
   ],

@@ -11,8 +11,9 @@ export class Certificate {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   studentId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: true })
-  moduleId: Types.ObjectId;
+  /** Ausente quando o certificado é da trilha de aulas avulsas do curso, não de um módulo. */
+  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: false })
+  moduleId?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Course', required: true })
   courseId: Types.ObjectId;
@@ -40,4 +41,4 @@ export class Certificate {
 }
 
 export const CertificateSchema = SchemaFactory.createForClass(Certificate);
-CertificateSchema.index({ studentId: 1, moduleId: 1 }, { unique: true });
+CertificateSchema.index({ studentId: 1, moduleId: 1, courseId: 1 }, { unique: true });

@@ -32,10 +32,10 @@ export class AttachmentsController {
   @Get()
   async findByLesson(@Query('lessonId') lessonId: string, @CurrentUser() user: JwtUser) {
     if (user.role === Role.STUDENT) {
-      const moduleId = await this.lessonsService.resolveModuleId(lessonId);
-      const canAccess = await this.enrollmentsService.canAccess(user.userId, moduleId);
+      const access = await this.lessonsService.getAccessKey(lessonId);
+      const canAccess = await this.enrollmentsService.canAccess(user.userId, access.courseId, access.moduleId);
       if (!canAccess) {
-        throw new ForbiddenException('Você precisa se matricular neste módulo para ver o conteúdo');
+        throw new ForbiddenException('Você precisa se matricular para ver o conteúdo');
       }
     }
     return this.attachmentsService.findByLesson(lessonId);

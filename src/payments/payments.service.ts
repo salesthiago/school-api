@@ -6,6 +6,7 @@ import { CheckoutDto } from './dto/checkout.dto';
 import { PAYMENT_PROVIDER, PaymentProvider } from './providers/payment-provider.interface';
 import { OrdersService } from '../orders/orders.service';
 import { ModulesService } from '../modules/modules.service';
+import { CoursesService } from '../courses/courses.service';
 import { EnrollmentsService } from '../enrollments/enrollments.service';
 import { AuditService } from '../audit/audit.service';
 import { JwtUser } from '../common/decorators/current-user.decorator';
@@ -17,27 +18,47 @@ export class PaymentsService {
     @Inject(PAYMENT_PROVIDER) private provider: PaymentProvider,
     private ordersService: OrdersService,
     private modulesService: ModulesService,
+    private coursesService: CoursesService,
     private enrollmentsService: EnrollmentsService,
     private auditService: AuditService,
   ) {}
 
   async checkout(dto: CheckoutDto, student: JwtUser) {
-    const courseModule = await this.modulesService.findById(dto.moduleId);
-    if (courseModule.free || courseModule.price === 0) {
-      throw new BadRequestException('Módulo gratuito não requer pagamento');
+    let moduleId: string | undefined;
+    let courseId: string;
+    let amount: number;
+
+    if (dto.moduleId) {
+      const courseModule = await this.modulesService.findById(dto.moduleId);
+      if (courseModule.free || courseModule.price === 0) {
+        throw new BadRequestException('Módulo gratuito não requer pagamento');
+      }
+      moduleId = dto.moduleId;
+      courseId = courseModule.courseId.toString();
+      amount = courseModule.price;
+    } else {
+      if (!dto.courseId) {
+        throw new BadRequestException('Informe moduleId ou courseId');
+      }
+      const course = await this.coursesService.findById(dto.courseId);
+      if (course.free || !course.bundlePrice) {
+        throw new BadRequestException('Trilha de aulas gratuita não requer pagamento');
+      }
+      courseId = dto.courseId;
+      amount = course.bundlePrice;
     }
 
     const order = await this.ordersService.create({
       studentId: student.userId,
-      moduleId: dto.moduleId,
-      courseId: courseModule.courseId.toString(),
-      amount: courseModule.price,
+      moduleId,
+      courseId,
+      amount,
       paymentMethod: dto.paymentMethod,
     });
 
     const charge = await this.provider.createCharge({
       orderId: order.id,
-      amount: courseModule.price,
+      amount,
       method: dto.paymentMethod,
       payer: { name: student.email, email: student.email },
     });
@@ -80,9 +101,9 @@ export class PaymentsService {
     const order = await this.ordersService.markAsPaid(payment.orderId.toString());
     await this.enrollmentsService.activateFromPayment(
       order.studentId.toString(),
-      order.moduleId.toString(),
       order.courseId.toString(),
       order.id,
+      order.moduleId?.toString(),
     );
 
     await this.auditService.log('payment.confirmed', {

@@ -1,7 +1,8 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { randomUUID } from 'crypto';
+import { idFilter } from '../common/utils/mongo-id.util';
 import { CourseModule, CourseModuleDocument } from './schemas/module.schema';
 import { Course, CourseDocument } from '../courses/schemas/course.schema';
 import { Lesson, LessonDocument } from '../lessons/schemas/lesson.schema';
@@ -30,20 +31,14 @@ export class ModulesService {
     await this.assertCourseOwnership(dto.courseId, user);
     const module = await this.moduleModel.create({
       ...dto,
+      courseId: new Types.ObjectId(dto.courseId),
       price: dto.free ? 0 : dto.price,
     });
     return this.toPublic(module);
   }
 
   async findByCourse(courseId: string) {
-    // courseId é declarado como Types.ObjectId no schema, mas @nestjs/mongoose@11 +
-    // mongoose@9 compila esse `type:` para Mixed (bug de biblioteca confirmado —
-    // ver módulo backend/src/reports/reports.service.ts, comentário sobre idEq),
-    // então o Mongoose não faz cast automático do filtro. Casta explicitamente aqui
-    // para bater com os documentos gravados como ObjectId de verdade.
-    const modules = await this.moduleModel
-      .find({ courseId: new Types.ObjectId(courseId) })
-      .sort({ order: 1 });
+    const modules = await this.moduleModel.find(idFilter('$courseId', courseId)).sort({ order: 1 });
     return Promise.all(modules.map((m) => this.toPublic(m)));
   }
 
@@ -61,6 +56,12 @@ export class ModulesService {
   async update(id: string, dto: UpdateModuleDto, user: JwtUser) {
     const module = await this.findById(id);
     await this.assertCourseOwnership(module.courseId.toString(), user);
+    if (dto.published && !module.published) {
+      const lessonCount = await this.lessonModel.countDocuments(idFilter('$moduleId', id));
+      if (lessonCount === 0) {
+        throw new BadRequestException('O módulo precisa de pelo menos uma aula para ser publicado');
+      }
+    }
     Object.assign(module, dto);
     if (dto.free) module.price = 0;
     await module.save();
@@ -72,7 +73,7 @@ export class ModulesService {
     const module = await this.findById(id);
     await this.assertCourseOwnership(module.courseId.toString(), user);
 
-    const lessons = await this.lessonModel.find({ moduleId: id }).select('_id');
+    const lessons = await this.lessonModel.find(idFilter('$moduleId', id)).select('_id');
     // Referências entre coleções neste projeto são gravadas como string, não
     // ObjectId de fato (schema-wide, ver nota em Types.ObjectId) — usar
     // string aqui para o $in bater com o que está persistido.
@@ -82,8 +83,8 @@ export class ModulesService {
     await Promise.all(attachments.map((a) => this.storage.delete(a.storageKey)));
     await this.attachmentModel.deleteMany({ lessonId: { $in: lessonIds } });
 
-    await this.lessonModel.deleteMany({ moduleId: id });
-    await this.enrollmentModel.deleteMany({ moduleId: id });
+    await this.lessonModel.deleteMany(idFilter('$moduleId', id));
+    await this.enrollmentModel.deleteMany(idFilter('$moduleId', id));
     await module.deleteOne();
   }
 

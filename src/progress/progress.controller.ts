@@ -18,4 +18,9 @@ export class ProgressController {
   getModuleSummary(@Param('moduleId') moduleId: string, @CurrentUser() user: JwtUser) {
     return this.progressService.getModuleSummary(user.userId, moduleId);
   }
+
+  @Get('course/:courseId')
+  getCourseTrackSummary(@Param('courseId') courseId: string, @CurrentUser() user: JwtUser) {
+    return this.progressService.getCourseTrackSummary(user.userId, courseId);
+  }
 }

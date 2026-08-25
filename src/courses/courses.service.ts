@@ -1,14 +1,16 @@
-import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { randomUUID } from 'crypto';
 import { Course, CourseDocument } from './schemas/course.schema';
+import { Lesson, LessonDocument } from '../lessons/schemas/lesson.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { JwtUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
 import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
 import { ModulesService } from '../modules/modules.service';
+import { idFilter } from '../common/utils/mongo-id.util';
 
 const COVER_URL_TTL_SECONDS = 60 * 60;
 
@@ -16,6 +18,7 @@ const COVER_URL_TTL_SECONDS = 60 * 60;
 export class CoursesService {
   constructor(
     @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
+    @InjectModel(Lesson.name) private lessonModel: Model<LessonDocument>,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
     private modulesService: ModulesService,
   ) {}
@@ -58,6 +61,12 @@ export class CoursesService {
   async update(id: string, dto: UpdateCourseDto, user: JwtUser) {
     const course = await this.findById(id);
     this.assertOwnership(course, user);
+    if (dto.published && !course.published) {
+      const lessonCount = await this.lessonModel.countDocuments(idFilter('$courseId', id));
+      if (lessonCount === 0) {
+        throw new BadRequestException('O curso precisa de pelo menos uma aula para ser publicado');
+      }
+    }
     Object.assign(course, dto);
     await course.save();
     return this.toPublic(course);

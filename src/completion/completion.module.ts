@@ -7,6 +7,7 @@ import { CertificatesModule } from '../certificates/certificates.module';
 import { ModulesModule } from '../modules/modules.module';
 import { CoursesModule } from '../courses/courses.module';
 import { UsersModule } from '../users/users.module';
+import { LessonsModule } from '../lessons/lessons.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UsersModule } from '../users/users.module';
     ModulesModule,
     CoursesModule,
     UsersModule,
+    LessonsModule,
   ],
   controllers: [CompletionController],
   providers: [CompletionService],

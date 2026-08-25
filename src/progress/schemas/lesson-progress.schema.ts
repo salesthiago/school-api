@@ -11,8 +11,9 @@ export class LessonProgress {
   @Prop({ type: Types.ObjectId, ref: 'Lesson', required: true, index: true })
   lessonId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: true, index: true })
-  moduleId: Types.ObjectId;
+  /** Ausente quando a aula é avulsa (sem módulo). */
+  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: false, index: true })
+  moduleId?: Types.ObjectId;
 
   @Prop({ required: true, default: 0, min: 0 })
   watchedSeconds: number;

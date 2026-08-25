@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -29,16 +30,35 @@ export class LessonsController {
     private readonly enrollmentsService: EnrollmentsService,
   ) {}
 
+  /**
+   * `moduleId` → aulas de um módulo (matrícula igual sempre foi).
+   * `courseId` → TODAS as aulas do curso (soltas + de módulo), só pra quem gerencia o curso —
+   * usado pela tela de estrutura do curso, não é uma listagem de navegação do aluno.
+   */
   @Get()
-  async findByModule(@Query('moduleId') moduleId: string, @CurrentUser() user: JwtUser) {
-    await this.assertCanView(moduleId, user);
-    return this.lessonsService.findByModule(moduleId);
+  async find(
+    @Query('moduleId') moduleId: string | undefined,
+    @Query('courseId') courseId: string | undefined,
+    @CurrentUser() user: JwtUser,
+  ) {
+    if (moduleId) {
+      const access = await this.lessonsService.resolveModuleAccessKey(moduleId);
+      await this.assertCanView(access, user);
+      return this.lessonsService.findByModule(moduleId);
+    }
+    if (courseId) {
+      if (user.role === Role.STUDENT) {
+        throw new ForbiddenException('Endpoint reservado a professores/administradores');
+      }
+      return this.lessonsService.findByCourse(courseId);
+    }
+    throw new BadRequestException('Informe moduleId ou courseId');
   }
 
   @Get(':id')
   async findOne(@Param('id') id: string, @CurrentUser() user: JwtUser) {
-    const moduleId = await this.lessonsService.resolveModuleId(id);
-    await this.assertCanView(moduleId, user);
+    const access = await this.lessonsService.getAccessKey(id);
+    await this.assertCanView(access, user);
     return this.lessonsService.findById(id);
   }
 
@@ -89,14 +109,19 @@ export class LessonsController {
   }
 
   /**
-   * Vídeo/anexos de aula só ficam visíveis para quem está matriculado no
-   * módulo — professor/admin sempre podem pré-visualizar o próprio conteúdo.
+   * Vídeo/anexos de aula só ficam visíveis para quem está matriculado (no módulo, ou na trilha
+   * de aulas avulsas do curso quando a aula não tem módulo) — professor/admin sempre podem
+   * pré-visualizar o próprio conteúdo.
    */
-  private async assertCanView(moduleId: string, user: JwtUser) {
+  private async assertCanView(access: { courseId: string; moduleId?: string }, user: JwtUser) {
     if (user.role !== Role.STUDENT) return;
-    const canAccess = await this.enrollmentsService.canAccess(user.userId, moduleId);
+    const canAccess = await this.enrollmentsService.canAccess(user.userId, access.courseId, access.moduleId);
     if (!canAccess) {
-      throw new ForbiddenException('Você precisa se matricular neste módulo para ver o conteúdo');
+      throw new ForbiddenException(
+        access.moduleId
+          ? 'Você precisa se matricular neste módulo para ver o conteúdo'
+          : 'Você precisa se matricular neste curso para ver o conteúdo',
+      );
     }
   }
 }

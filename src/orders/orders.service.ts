@@ -9,11 +9,11 @@ export class OrdersService {
 
   create(params: {
     studentId: string;
-    moduleId: string;
+    moduleId?: string;
     courseId: string;
     amount: number;
     paymentMethod: PaymentMethod;
-  }) {
+  }): Promise<OrderDocument> {
     return this.orderModel.create({ ...params, status: OrderStatus.PENDING });
   }
 
