@@ -13,11 +13,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Lesson, LessonDocument } from '../lessons/schemas/lesson.schema';
-import { NotificationsService } from '../notifications/notifications.service';
 import { BunnyWebhookDto } from './dto/bunny-webhook.dto';
-
-const READY_STATUSES = [4]; // Finished
-const ERROR_STATUSES = [5, 6]; // Error, UploadFailed
+import { VideoStatusService } from './video-status.service';
 
 /**
  * Webhook público chamado pelo Bunny Stream quando o status de
@@ -30,7 +27,7 @@ export class VideoController {
 
   constructor(
     @InjectModel(Lesson.name) private lessonModel: Model<LessonDocument>,
-    private notificationsService: NotificationsService,
+    private videoStatusService: VideoStatusService,
     private config: ConfigService,
   ) {}
 
@@ -52,23 +49,7 @@ export class VideoController {
       return { ok: true };
     }
 
-    if (READY_STATUSES.includes(dto.Status)) {
-      lesson.video.status = 'ready';
-      await lesson.save();
-      await this.notificationsService.create(
-        lesson.teacherId.toString(),
-        'Vídeo pronto',
-        `O vídeo da aula "${lesson.title}" terminou de processar e já está disponível para os alunos.`,
-      );
-    } else if (ERROR_STATUSES.includes(dto.Status)) {
-      lesson.video.status = 'error';
-      await lesson.save();
-      await this.notificationsService.create(
-        lesson.teacherId.toString(),
-        'Falha ao processar vídeo',
-        `Houve um erro ao processar o vídeo da aula "${lesson.title}". Tente enviar novamente.`,
-      );
-    }
+    await this.videoStatusService.applyBunnyStatus(lesson, dto.Status);
 
     return { ok: true };
   }

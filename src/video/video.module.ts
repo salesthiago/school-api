@@ -5,6 +5,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { Lesson, LessonSchema } from '../lessons/schemas/lesson.schema';
 import { BunnyStreamService } from './bunny-stream.service';
 import { VideoController } from './video.controller';
+import { VideoStatusService } from './video-status.service';
+import { VideoReconciliationService } from './video-reconciliation.service';
 
 @Module({
   imports: [
@@ -13,7 +15,7 @@ import { VideoController } from './video.controller';
     MongooseModule.forFeature([{ name: Lesson.name, schema: LessonSchema }]),
   ],
   controllers: [VideoController],
-  providers: [BunnyStreamService],
+  providers: [BunnyStreamService, VideoStatusService, VideoReconciliationService],
   exports: [BunnyStreamService],
 })
 export class VideoModule {}

@@ -80,4 +80,23 @@ export class BunnyStreamService {
       headers: { AccessKey: config.apiKey },
     });
   }
+
+  /**
+   * Consulta o status atual de processamento direto na API do Bunny (mesmos códigos
+   * do webhook: 0 Created, 1 Uploaded, 2 Processing, 3 Transcoding, 4 Finished,
+   * 5 Error, 6 UploadFailed). Usado pelo job de reconciliação como rede de segurança
+   * para quando o webhook falha ou nunca chega.
+   */
+  async getVideoStatus(externalId: string): Promise<number | null> {
+    const config = await this.settingsService.getBunnyProviderConfig();
+    if (!config) return null;
+
+    const response = await fetch(`${BUNNY_STREAM_API}/library/${config.libraryId}/videos/${externalId}`, {
+      headers: { AccessKey: config.apiKey },
+    });
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as { status: number };
+    return data.status;
+  }
 }
