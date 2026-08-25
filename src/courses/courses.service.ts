@@ -50,7 +50,8 @@ export class CoursesService {
   }
 
   async findByIdPublic(id: string) {
-    const course = await this.findById(id);
+    const course = await this.courseModel.findById(id).populate('teacherId', 'name');
+    if (!course) throw new NotFoundException('Curso não encontrado');
     return this.toPublic(course);
   }
 

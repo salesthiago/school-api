@@ -1,6 +1,6 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { randomUUID } from 'crypto';
 import { CourseModule, CourseModuleDocument } from './schemas/module.schema';
 import { Course, CourseDocument } from '../courses/schemas/course.schema';
@@ -36,7 +36,14 @@ export class ModulesService {
   }
 
   async findByCourse(courseId: string) {
-    const modules = await this.moduleModel.find({ courseId }).sort({ order: 1 });
+    // courseId é declarado como Types.ObjectId no schema, mas @nestjs/mongoose@11 +
+    // mongoose@9 compila esse `type:` para Mixed (bug de biblioteca confirmado —
+    // ver módulo backend/src/reports/reports.service.ts, comentário sobre idEq),
+    // então o Mongoose não faz cast automático do filtro. Casta explicitamente aqui
+    // para bater com os documentos gravados como ObjectId de verdade.
+    const modules = await this.moduleModel
+      .find({ courseId: new Types.ObjectId(courseId) })
+      .sort({ order: 1 });
     return Promise.all(modules.map((m) => this.toPublic(m)));
   }
 
