@@ -14,6 +14,11 @@ export class ProgressController {
     return this.progressService.upsert(user.userId, dto);
   }
 
+  @Get('lesson/:lessonId')
+  getLessonProgress(@Param('lessonId') lessonId: string, @CurrentUser() user: JwtUser) {
+    return this.progressService.getLessonProgress(user.userId, lessonId);
+  }
+
   @Get('module/:moduleId')
   getModuleSummary(@Param('moduleId') moduleId: string, @CurrentUser() user: JwtUser) {
     return this.progressService.getModuleSummary(user.userId, moduleId);

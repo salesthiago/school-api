@@ -64,6 +64,16 @@ export class ProgressService {
     );
   }
 
+  /** Usado pelo player pra retomar o vídeo de onde o aluno parou, em vez de sempre começar do zero. */
+  async getLessonProgress(studentId: string, lessonId: string) {
+    const existing = await this.progressModel.findOne({ studentId, lessonId });
+    return {
+      watchedSeconds: existing?.watchedSeconds ?? 0,
+      percentage: existing?.percentage ?? 0,
+      completed: existing?.completed ?? false,
+    };
+  }
+
   async getModuleSummary(studentId: string, moduleId: string): Promise<ModuleProgressSummary> {
     const lessons = await this.lessonsService.findByModule(moduleId);
     const courseModule = await this.modulesService.findById(moduleId);
