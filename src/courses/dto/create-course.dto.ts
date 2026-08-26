@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsNumber, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 
 export class CreateCourseDto {
   @IsString()
@@ -22,4 +22,11 @@ export class CreateCourseDto {
   @IsOptional()
   @IsBoolean()
   free?: boolean;
+
+  /** Peso (%) da prova final na % de progresso mostrada ao aluno — ver Course.examWeightPercent. */
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  examWeightPercent?: number;
 }

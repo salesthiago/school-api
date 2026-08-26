@@ -6,6 +6,7 @@ import { ProgressController } from './progress.controller';
 import { LessonsModule } from '../lessons/lessons.module';
 import { ModulesModule } from '../modules/modules.module';
 import { CoursesModule } from '../courses/courses.module';
+import { ExamsModule } from '../exams/exams.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { CoursesModule } from '../courses/courses.module';
     LessonsModule,
     ModulesModule,
     CoursesModule,
+    ExamsModule,
   ],
   controllers: [ProgressController],
   providers: [ProgressService],

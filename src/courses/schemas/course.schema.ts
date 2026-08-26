@@ -37,6 +37,14 @@ export class Course {
   /** % mínimo assistido pra considerar uma aula avulsa concluída — espelha CourseModule. */
   @Prop({ default: 90, min: 1, max: 100 })
   completionThresholdPercent: number;
+
+  /**
+   * Peso da prova final (scope MODULE no módulo, scope COURSE na trilha/curso) na % de progresso
+   * exibida ao aluno — só entra na conta quando existe uma prova pro escopo em questão. Um único
+   * campo por curso, aplicado do mesmo jeito em módulo, trilha avulsa e curso inteiro.
+   */
+  @Prop({ default: 10, min: 0, max: 100 })
+  examWeightPercent: number;
 }
 
 export const CourseSchema = SchemaFactory.createForClass(Course);
