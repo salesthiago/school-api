@@ -32,8 +32,9 @@ export class LessonsController {
 
   /**
    * `moduleId` → aulas de um módulo (matrícula igual sempre foi).
-   * `courseId` → TODAS as aulas do curso (soltas + de módulo), só pra quem gerencia o curso —
-   * usado pela tela de estrutura do curso, não é uma listagem de navegação do aluno.
+   * `courseId` para professor/admin → TODAS as aulas do curso (soltas + de módulo), usado pela
+   * tela de estrutura do curso. `courseId` para aluno → só as aulas avulsas (sem módulo) e só
+   * se estiver matriculado na trilha do curso — usado pelo player pra montar a lista de aulas.
    */
   @Get()
   async find(
@@ -48,7 +49,8 @@ export class LessonsController {
     }
     if (courseId) {
       if (user.role === Role.STUDENT) {
-        throw new ForbiddenException('Endpoint reservado a professores/administradores');
+        await this.assertCanView({ courseId }, user);
+        return this.lessonsService.findLooseByCourse(courseId);
       }
       return this.lessonsService.findByCourse(courseId);
     }
