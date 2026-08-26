@@ -13,6 +13,7 @@ export interface ModuleProgressSummary {
   completedLessons: number;
   percentage: number;
   nextLessonId: string | null;
+  completedLessonIds: string[];
 }
 
 @Injectable()
@@ -91,6 +92,7 @@ export class ProgressService {
         ? Math.round((completedIds.size / mandatoryLessons.length) * 100)
         : 0,
       nextLessonId: nextLesson?.id ?? null,
+      completedLessonIds: [...completedIds],
     };
   }
 }

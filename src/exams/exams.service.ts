@@ -27,7 +27,11 @@ export class ExamsService {
   }
 
   findByModule(moduleId: string) {
-    return this.examModel.find({ moduleId });
+    return this.examModel.find({ moduleId, scope: ExamScope.MODULE });
+  }
+
+  findByLesson(lessonId: string) {
+    return this.examModel.find({ lessonId, scope: ExamScope.LESSON });
   }
 
   addQuestion(examId: string, dto: CreateQuestionDto) {

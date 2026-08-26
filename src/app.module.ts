@@ -27,6 +27,7 @@ import { AuditModule } from './audit/audit.module';
 import { SettingsModule } from './settings/settings.module';
 import { StatsModule } from './stats/stats.module';
 import { ReportsModule } from './reports/reports.module';
+import { NotesModule } from './notes/notes.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { ReportsModule } from './reports/reports.module';
     SettingsModule,
     StatsModule,
     ReportsModule,
+    NotesModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

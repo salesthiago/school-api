@@ -15,8 +15,9 @@ export class ExamsController {
   constructor(private readonly examsService: ExamsService) {}
 
   @Get()
-  findByModule(@Query('moduleId') moduleId: string) {
-    return this.examsService.findByModule(moduleId);
+  find(@Query('moduleId') moduleId?: string, @Query('lessonId') lessonId?: string) {
+    if (lessonId) return this.examsService.findByLesson(lessonId);
+    return this.examsService.findByModule(moduleId!);
   }
 
   @Get(':id/questions')
