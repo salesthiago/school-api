@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsDateString, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -19,4 +19,21 @@ export class UpdateProfileDto {
   @IsString()
   @MaxLength(100)
   twitter?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(280)
+  bio?: string;
+
+  @IsOptional()
+  @IsDateString()
+  birthDate?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  emailNotifications?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  completionNotifications?: boolean;
 }

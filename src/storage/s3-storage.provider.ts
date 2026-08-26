@@ -31,6 +31,11 @@ export class S3StorageProvider implements StorageProvider {
     await this.getClient().send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
+  async download(key: string): Promise<Buffer> {
+    const result = await this.getClient().send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    return Buffer.from(await result.Body!.transformToByteArray());
+  }
+
   private get bucket(): string {
     return this.config.get<string>('AWS_S3_BUCKET') ?? '';
   }

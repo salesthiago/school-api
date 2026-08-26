@@ -64,4 +64,12 @@ export class InstitutionsController {
   uploadStudentBanner(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
     return this.institutionsService.uploadStudentBanner(id, file);
   }
+
+  @Post(':id/certificate-template')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadCertificateTemplate(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+    return this.institutionsService.uploadCertificateTemplate(id, file);
+  }
 }

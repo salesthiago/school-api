@@ -20,6 +20,7 @@ import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorato
 import { UsersService } from './users.service';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 
@@ -48,6 +49,12 @@ export class UsersController {
   @UseInterceptors(FileInterceptor('file'))
   uploadAvatar(@CurrentUser() user: JwtUser, @UploadedFile() file: Express.Multer.File) {
     return this.usersService.setAvatar(user.userId, file);
+  }
+
+  @Patch('me/password')
+  @Roles(...ANY_ROLE)
+  changePassword(@CurrentUser() user: JwtUser, @Body() dto: ChangePasswordDto) {
+    return this.usersService.changePassword(user.userId, dto);
   }
 
   /**

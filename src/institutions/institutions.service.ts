@@ -8,7 +8,12 @@ import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.i
 
 const IMAGE_URL_TTL_SECONDS = 60 * 60;
 
-type ImageField = 'logoKey' | 'loginBackgroundKey' | 'registerBackgroundKey' | 'studentBannerKey';
+type ImageField =
+  | 'logoKey'
+  | 'loginBackgroundKey'
+  | 'registerBackgroundKey'
+  | 'studentBannerKey'
+  | 'certificateTemplateKey';
 
 @Injectable()
 export class InstitutionsService {
@@ -64,6 +69,20 @@ export class InstitutionsService {
     return this.uploadImage(id, 'studentBannerKey', 'student-banner', file);
   }
 
+  async uploadCertificateTemplate(
+    id: string,
+    file: { buffer: Buffer; mimetype: string; originalname: string },
+  ) {
+    return this.uploadImage(id, 'certificateTemplateKey', 'certificate-template', file);
+  }
+
+  /** Usado pelo CertificatesService pra desenhar a imagem como fundo do PDF — sem URL assinada, direto os bytes. */
+  async getCertificateTemplateBuffer(): Promise<Buffer | null> {
+    const institution = await this.getOrCreateDefault();
+    if (!institution.certificateTemplateKey) return null;
+    return this.storage.download(institution.certificateTemplateKey);
+  }
+
   private async uploadImage(
     id: string,
     field: ImageField,
@@ -83,21 +102,39 @@ export class InstitutionsService {
   }
 
   private async toPublic(institution: InstitutionDocument) {
-    const { logoKey, loginBackgroundKey, registerBackgroundKey, studentBannerKey, ...json } =
-      institution.toJSON() as unknown as Record<string, unknown> & {
-        logoKey?: string;
-        loginBackgroundKey?: string;
-        registerBackgroundKey?: string;
-        studentBannerKey?: string;
-      };
-    const [logoUrl, loginBackgroundUrl, registerBackgroundUrl, studentBannerUrl] = await Promise.all([
-      logoKey ? this.storage.getSignedUrl(logoKey, IMAGE_URL_TTL_SECONDS) : undefined,
-      loginBackgroundKey ? this.storage.getSignedUrl(loginBackgroundKey, IMAGE_URL_TTL_SECONDS) : undefined,
-      registerBackgroundKey
-        ? this.storage.getSignedUrl(registerBackgroundKey, IMAGE_URL_TTL_SECONDS)
-        : undefined,
-      studentBannerKey ? this.storage.getSignedUrl(studentBannerKey, IMAGE_URL_TTL_SECONDS) : undefined,
-    ]);
-    return { ...json, logoUrl, loginBackgroundUrl, registerBackgroundUrl, studentBannerUrl };
+    const {
+      logoKey,
+      loginBackgroundKey,
+      registerBackgroundKey,
+      studentBannerKey,
+      certificateTemplateKey,
+      ...json
+    } = institution.toJSON() as unknown as Record<string, unknown> & {
+      logoKey?: string;
+      loginBackgroundKey?: string;
+      registerBackgroundKey?: string;
+      studentBannerKey?: string;
+      certificateTemplateKey?: string;
+    };
+    const [logoUrl, loginBackgroundUrl, registerBackgroundUrl, studentBannerUrl, certificateTemplateUrl] =
+      await Promise.all([
+        logoKey ? this.storage.getSignedUrl(logoKey, IMAGE_URL_TTL_SECONDS) : undefined,
+        loginBackgroundKey ? this.storage.getSignedUrl(loginBackgroundKey, IMAGE_URL_TTL_SECONDS) : undefined,
+        registerBackgroundKey
+          ? this.storage.getSignedUrl(registerBackgroundKey, IMAGE_URL_TTL_SECONDS)
+          : undefined,
+        studentBannerKey ? this.storage.getSignedUrl(studentBannerKey, IMAGE_URL_TTL_SECONDS) : undefined,
+        certificateTemplateKey
+          ? this.storage.getSignedUrl(certificateTemplateKey, IMAGE_URL_TTL_SECONDS)
+          : undefined,
+      ]);
+    return {
+      ...json,
+      logoUrl,
+      loginBackgroundUrl,
+      registerBackgroundUrl,
+      studentBannerUrl,
+      certificateTemplateUrl,
+    };
   }
 }

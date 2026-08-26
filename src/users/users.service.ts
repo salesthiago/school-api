@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
@@ -13,6 +14,7 @@ import { User, UserDocument } from './schemas/user.schema';
 import { Enrollment, EnrollmentDocument, EnrollmentStatus } from '../enrollments/schemas/enrollment.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Role } from '../common/enums/role.enum';
@@ -123,6 +125,24 @@ export class UsersService {
         twitter: dto.twitter ?? user.socialLinks?.twitter,
       };
     }
+    if (dto.bio !== undefined) user.bio = dto.bio;
+    if (dto.birthDate !== undefined) user.birthDate = new Date(dto.birthDate);
+    if (dto.emailNotifications !== undefined) user.emailNotifications = dto.emailNotifications;
+    if (dto.completionNotifications !== undefined) {
+      user.completionNotifications = dto.completionNotifications;
+    }
+    await user.save();
+    return this.toProfile(user);
+  }
+
+  /** Troca de senha feita pelo próprio usuário — diferente de `resetPassword`, exige a senha atual. */
+  async changePassword(userId: string, dto: ChangePasswordDto) {
+    const user = await this.findById(userId);
+    const matches = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!matches) throw new BadRequestException('Senha atual incorreta');
+    user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    user.passwordChangedAt = new Date();
+    user.refreshTokenHash = undefined;
     await user.save();
     return this.toProfile(user);
   }
@@ -155,6 +175,12 @@ export class UsersService {
       institutionId: user.institutionId,
       active: user.active,
       socialLinks: user.socialLinks,
+      bio: user.bio,
+      birthDate: user.birthDate,
+      emailNotifications: user.emailNotifications,
+      completionNotifications: user.completionNotifications,
+      passwordChangedAt: user.passwordChangedAt,
+      createdAt: (user as unknown as { createdAt?: Date }).createdAt,
       avatarUrl: user.avatarKey
         ? await this.storage.getSignedUrl(user.avatarKey, AVATAR_URL_TTL_SECONDS)
         : undefined,

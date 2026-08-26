@@ -36,6 +36,10 @@ export class LocalStorageProvider implements StorageProvider {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   }
 
+  async download(key: string): Promise<Buffer> {
+    return fs.readFileSync(path.join(this.uploadDir, key));
+  }
+
   verify(key: string, expires: number, token: string): boolean {
     if (Date.now() > expires) return false;
     return this.sign(key, expires) === token;

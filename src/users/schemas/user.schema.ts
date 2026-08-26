@@ -41,6 +41,21 @@ export class User {
     instagram?: string;
     twitter?: string;
   };
+
+  @Prop({ maxlength: 280 })
+  bio?: string;
+
+  @Prop()
+  birthDate?: Date;
+
+  @Prop({ default: true })
+  emailNotifications: boolean;
+
+  @Prop({ default: true })
+  completionNotifications: boolean;
+
+  @Prop()
+  passwordChangedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

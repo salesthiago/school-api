@@ -49,6 +49,7 @@ export class CertificatesService {
     const code = `CERT-${randomUUID().split('-')[0].toUpperCase()}`;
     const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
     const validationUrl = `${frontendUrl}/certificates/validate/${code}`;
+    const templateBuffer = await this.institutionsService.getCertificateTemplateBuffer();
 
     const pdfBuffer = await this.buildPdf({
       ...params,
@@ -56,6 +57,7 @@ export class CertificatesService {
       code,
       validationUrl,
       issuedAt: new Date(),
+      templateBuffer,
     });
 
     const storageKey = `certificates/${code}.pdf`;
@@ -109,6 +111,7 @@ export class CertificatesService {
     code: string;
     validationUrl: string;
     issuedAt: Date;
+    templateBuffer: Buffer | null;
   }): Promise<Buffer> {
     const qrPngBuffer = await QRCode.toBuffer(params.validationUrl, { margin: 1, width: 160 });
 
@@ -118,6 +121,10 @@ export class CertificatesService {
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
+
+      if (params.templateBuffer) {
+        doc.image(params.templateBuffer, 0, 0, { width: doc.page.width, height: doc.page.height });
+      }
 
       doc.fontSize(10).fillColor('#666').text(params.institutionName, { align: 'center' });
       doc.moveDown(2);

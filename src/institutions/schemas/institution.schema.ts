@@ -20,6 +20,10 @@ export class Institution {
   @Prop()
   studentBannerKey?: string;
 
+  /** Imagem de fundo usada ao gerar o PDF do certificado — ver CertificatesService.buildPdf. */
+  @Prop()
+  certificateTemplateKey?: string;
+
   @Prop({ default: '#6C4BF4' })
   primaryColor: string;
 
