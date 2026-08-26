@@ -6,6 +6,7 @@ export type ExamDocument = HydratedDocument<Exam>;
 export enum ExamScope {
   LESSON = 'lesson',
   MODULE = 'module',
+  COURSE = 'course',
 }
 
 @Schema({ timestamps: true })
@@ -19,8 +20,12 @@ export class Exam {
   @Prop({ type: Types.ObjectId, ref: 'Lesson' })
   lessonId?: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: true, index: true })
-  moduleId: Types.ObjectId;
+  /** Ausente quando a prova é da aula avulsa (sem módulo) ou do curso inteiro (scope COURSE). */
+  @Prop({ type: Types.ObjectId, ref: 'CourseModule', index: true })
+  moduleId?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Course', required: true, index: true })
+  courseId: Types.ObjectId;
 
   @Prop({ required: true, default: 70, min: 0, max: 100 })
   minScorePercent: number;

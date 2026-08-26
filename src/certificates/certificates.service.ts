@@ -5,20 +5,27 @@ import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import PDFDocument from 'pdfkit';
 import * as QRCode from 'qrcode';
-import { Certificate, CertificateDocument } from './schemas/certificate.schema';
+import { Certificate, CertificateDocument, CertificateType } from './schemas/certificate.schema';
 import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
 import { InstitutionsService } from '../institutions/institutions.service';
 
 export interface GenerateCertificateParams {
   studentId: string;
   studentName: string;
-  /** Ausente para certificado da trilha de aulas avulsas do curso (sem módulo). */
+  type: CertificateType;
+  /** Ausente para certificado de trilha ('track') ou do curso inteiro ('full'). */
   moduleId?: string;
   moduleTitle: string;
   courseId: string;
   teacherName: string;
   workloadHours: number;
 }
+
+const COMPLETION_PHRASE: Record<CertificateType, string> = {
+  module: 'concluiu com aproveitamento o módulo',
+  track: 'concluiu com aproveitamento as aulas do curso',
+  full: 'concluiu com aproveitamento o curso completo',
+};
 
 @Injectable()
 export class CertificatesService {
@@ -32,8 +39,9 @@ export class CertificatesService {
   async generate(params: GenerateCertificateParams): Promise<CertificateDocument> {
     const existing = await this.certificateModel.findOne({
       studentId: params.studentId,
-      moduleId: params.moduleId ?? null,
       courseId: params.courseId,
+      type: params.type,
+      moduleId: params.moduleId ?? null,
     });
     if (existing) return existing;
 
@@ -57,6 +65,7 @@ export class CertificatesService {
       code,
       studentId: params.studentId,
       studentName: params.studentName,
+      type: params.type,
       moduleId: params.moduleId,
       moduleTitle: params.moduleTitle,
       courseId: params.courseId,
@@ -117,7 +126,7 @@ export class CertificatesService {
       doc
         .fontSize(14)
         .fillColor('#333')
-        .text(`Certificamos que ${params.studentName} concluiu com aproveitamento o módulo`, {
+        .text(`Certificamos que ${params.studentName} ${COMPLETION_PHRASE[params.type]}`, {
           align: 'center',
         });
       doc.moveDown(0.5);

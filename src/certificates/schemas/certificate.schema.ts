@@ -3,6 +3,8 @@ import { HydratedDocument, Types } from 'mongoose';
 
 export type CertificateDocument = HydratedDocument<Certificate>;
 
+export type CertificateType = 'module' | 'track' | 'full';
+
 @Schema({ timestamps: true })
 export class Certificate {
   @Prop({ required: true, unique: true, index: true })
@@ -11,7 +13,16 @@ export class Certificate {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   studentId: Types.ObjectId;
 
-  /** Ausente quando o certificado é da trilha de aulas avulsas do curso, não de um módulo. */
+  /**
+   * 'module' = conclusão de um módulo específico (moduleId setado).
+   * 'track' = conclusão só da trilha de aulas avulsas do curso (sem módulo).
+   * 'full' = conclusão do curso inteiro (todos os módulos + trilha), com prova final única.
+   * 'track' e 'full' nunca têm moduleId — o campo type é o que os desambigua.
+   */
+  @Prop({ type: String, enum: ['module', 'track', 'full'], required: true })
+  type: CertificateType;
+
+  /** Ausente quando o certificado é da trilha de aulas avulsas ou do curso inteiro (ver type). */
   @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: false })
   moduleId?: Types.ObjectId;
 
@@ -41,4 +52,4 @@ export class Certificate {
 }
 
 export const CertificateSchema = SchemaFactory.createForClass(Certificate);
-CertificateSchema.index({ studentId: 1, moduleId: 1, courseId: 1 }, { unique: true });
+CertificateSchema.index({ studentId: 1, courseId: 1, type: 1, moduleId: 1 }, { unique: true });

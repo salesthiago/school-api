@@ -9,12 +9,20 @@ export class CreateExamDto {
   @IsEnum(ExamScope)
   scope: ExamScope;
 
+  /** Obrigatório quando scope = LESSON. */
   @IsOptional()
   @IsMongoId()
   lessonId?: string;
 
+  /** Obrigatório quando scope = MODULE. */
+  @IsOptional()
   @IsMongoId()
-  moduleId: string;
+  moduleId?: string;
+
+  /** Obrigatório quando scope = COURSE (nos outros scopes é resolvido no service). */
+  @IsOptional()
+  @IsMongoId()
+  courseId?: string;
 
   @IsOptional()
   @IsNumber()

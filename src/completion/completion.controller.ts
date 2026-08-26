@@ -17,4 +17,9 @@ export class CompletionController {
   checkCourseTrack(@Param('courseId') courseId: string, @CurrentUser() user: JwtUser) {
     return this.completionService.checkCourseTrack(user.userId, courseId);
   }
+
+  @Get('course/:courseId/full')
+  checkCourseFull(@Param('courseId') courseId: string, @CurrentUser() user: JwtUser) {
+    return this.completionService.checkCourseFull(user.userId, courseId);
+  }
 }
