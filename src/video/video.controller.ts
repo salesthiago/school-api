@@ -37,15 +37,24 @@ export class VideoController {
   // O ValidationPipe global usa forbidNonWhitelisted, que rejeitaria (400) esse payload
   // antes de chegar aqui — por isso sobrescrevemos com whitelist only para este endpoint.
   @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
-  async handleBunnyWebhook(@Body() dto: BunnyWebhookDto, @Query('token') token?: string) {
-    const expected = this.config.get<string>('BUNNY_WEBHOOK_SECRET') ?? 'dev-bunny-webhook-secret';
+  async handleBunnyWebhook(
+    @Body() dto: BunnyWebhookDto,
+    @Query('token') token?: string,
+  ) {
+    const expected =
+      this.config.get<string>('BUNNY_WEBHOOK_SECRET') ??
+      'dev-bunny-webhook-secret';
     if (token !== expected) {
       throw new ForbiddenException('Token inválido');
     }
 
-    const lesson = await this.lessonModel.findOne({ 'video.externalId': dto.VideoGuid });
+    const lesson = await this.lessonModel.findOne({
+      'video.externalId': dto.VideoGuid,
+    });
     if (!lesson || !lesson.video) {
-      this.logger.warn(`Webhook Bunny: nenhuma lesson encontrada para VideoGuid=${dto.VideoGuid}`);
+      this.logger.warn(
+        `Webhook Bunny: nenhuma lesson encontrada para VideoGuid=${dto.VideoGuid}`,
+      );
       return { ok: true };
     }
 

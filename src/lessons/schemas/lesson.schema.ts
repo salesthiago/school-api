@@ -38,7 +38,12 @@ export class Lesson {
   courseId: Types.ObjectId;
 
   /** Ausente quando a aula é avulsa (pertence direto ao curso, sem módulo). */
-  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: false, index: true })
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'CourseModule',
+    required: false,
+    index: true,
+  })
   moduleId?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })

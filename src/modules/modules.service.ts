@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { randomUUID } from 'crypto';
@@ -6,24 +12,36 @@ import { idFilter } from '../common/utils/mongo-id.util';
 import { CourseModule, CourseModuleDocument } from './schemas/module.schema';
 import { Course, CourseDocument } from '../courses/schemas/course.schema';
 import { Lesson, LessonDocument } from '../lessons/schemas/lesson.schema';
-import { Attachment, AttachmentDocument } from '../attachments/schemas/attachment.schema';
-import { Enrollment, EnrollmentDocument } from '../enrollments/schemas/enrollment.schema';
+import {
+  Attachment,
+  AttachmentDocument,
+} from '../attachments/schemas/attachment.schema';
+import {
+  Enrollment,
+  EnrollmentDocument,
+} from '../enrollments/schemas/enrollment.schema';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { UpdateModuleDto } from './dto/update-module.dto';
 import { JwtUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
-import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
+import {
+  STORAGE_PROVIDER,
+  StorageProvider,
+} from '../storage/storage-provider.interface';
 
 const COVER_URL_TTL_SECONDS = 60 * 60;
 
 @Injectable()
 export class ModulesService {
   constructor(
-    @InjectModel(CourseModule.name) private moduleModel: Model<CourseModuleDocument>,
+    @InjectModel(CourseModule.name)
+    private moduleModel: Model<CourseModuleDocument>,
     @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
     @InjectModel(Lesson.name) private lessonModel: Model<LessonDocument>,
-    @InjectModel(Attachment.name) private attachmentModel: Model<AttachmentDocument>,
-    @InjectModel(Enrollment.name) private enrollmentModel: Model<EnrollmentDocument>,
+    @InjectModel(Attachment.name)
+    private attachmentModel: Model<AttachmentDocument>,
+    @InjectModel(Enrollment.name)
+    private enrollmentModel: Model<EnrollmentDocument>,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
   ) {}
 
@@ -38,7 +56,9 @@ export class ModulesService {
   }
 
   async findByCourse(courseId: string) {
-    const modules = await this.moduleModel.find(idFilter('$courseId', courseId)).sort({ order: 1 });
+    const modules = await this.moduleModel
+      .find(idFilter('$courseId', courseId))
+      .sort({ order: 1 });
     return Promise.all(modules.map((m) => this.toPublic(m)));
   }
 
@@ -57,9 +77,13 @@ export class ModulesService {
     const module = await this.findById(id);
     await this.assertCourseOwnership(module.courseId.toString(), user);
     if (dto.published && !module.published) {
-      const lessonCount = await this.lessonModel.countDocuments(idFilter('$moduleId', id));
+      const lessonCount = await this.lessonModel.countDocuments(
+        idFilter('$moduleId', id),
+      );
       if (lessonCount === 0) {
-        throw new BadRequestException('O módulo precisa de pelo menos uma aula para ser publicado');
+        throw new BadRequestException(
+          'O módulo precisa de pelo menos uma aula para ser publicado',
+        );
       }
     }
     Object.assign(module, dto);
@@ -73,14 +97,20 @@ export class ModulesService {
     const module = await this.findById(id);
     await this.assertCourseOwnership(module.courseId.toString(), user);
 
-    const lessons = await this.lessonModel.find(idFilter('$moduleId', id)).select('_id');
+    const lessons = await this.lessonModel
+      .find(idFilter('$moduleId', id))
+      .select('_id');
     // Referências entre coleções neste projeto são gravadas como string, não
     // ObjectId de fato (schema-wide, ver nota em Types.ObjectId) — usar
     // string aqui para o $in bater com o que está persistido.
     const lessonIds = lessons.map((l) => l._id.toString());
 
-    const attachments = await this.attachmentModel.find({ lessonId: { $in: lessonIds } });
-    await Promise.all(attachments.map((a) => this.storage.delete(a.storageKey)));
+    const attachments = await this.attachmentModel.find({
+      lessonId: { $in: lessonIds },
+    });
+    await Promise.all(
+      attachments.map((a) => this.storage.delete(a.storageKey)),
+    );
     await this.attachmentModel.deleteMany({ lessonId: { $in: lessonIds } });
 
     await this.lessonModel.deleteMany(idFilter('$moduleId', id));
@@ -97,7 +127,11 @@ export class ModulesService {
     await this.assertCourseOwnership(module.courseId.toString(), user);
     const previousKey = module.coverImageKey;
     const key = `modules/${id}/${randomUUID()}-${file.originalname}`;
-    const { storageKey } = await this.storage.upload(key, file.buffer, file.mimetype);
+    const { storageKey } = await this.storage.upload(
+      key,
+      file.buffer,
+      file.mimetype,
+    );
     module.coverImageKey = storageKey;
     await module.save();
     if (previousKey) {
@@ -116,7 +150,10 @@ export class ModulesService {
   }
 
   private async toPublic(module: CourseModuleDocument) {
-    const { coverImageKey, ...json } = module.toJSON() as unknown as Record<string, unknown> & {
+    const { coverImageKey, ...json } = module.toJSON() as unknown as Record<
+      string,
+      unknown
+    > & {
       coverImageKey?: string;
     };
     return {

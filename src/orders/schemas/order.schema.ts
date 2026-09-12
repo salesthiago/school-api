@@ -13,6 +13,8 @@ export enum OrderStatus {
 export enum PaymentMethod {
   PIX = 'pix',
   BOLETO = 'boleto',
+  CREDIT_CARD = 'credit_card',
+  DEBIT_CARD = 'debit_card',
 }
 
 @Schema({ timestamps: true })
@@ -33,7 +35,12 @@ export class Order {
   @Prop({ type: String, enum: PaymentMethod, required: true })
   paymentMethod: PaymentMethod;
 
-  @Prop({ type: String, enum: OrderStatus, default: OrderStatus.PENDING, index: true })
+  @Prop({
+    type: String,
+    enum: OrderStatus,
+    default: OrderStatus.PENDING,
+    index: true,
+  })
   status: OrderStatus;
 
   @Prop()

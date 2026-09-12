@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { randomUUID } from 'crypto';
@@ -8,7 +14,10 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { JwtUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
-import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
+import {
+  STORAGE_PROVIDER,
+  StorageProvider,
+} from '../storage/storage-provider.interface';
 import { ModulesService } from '../modules/modules.service';
 import { idFilter } from '../common/utils/mongo-id.util';
 
@@ -35,14 +44,18 @@ export class CoursesService {
   async findPublished(institutionId?: string) {
     const filter: Record<string, unknown> = { published: true };
     if (institutionId) filter.institutionId = institutionId;
-    const courses = await this.courseModel.find(filter).populate('teacherId', 'name');
+    const courses = await this.courseModel
+      .find(filter)
+      .populate('teacherId', 'name');
     return Promise.all(courses.map((c) => this.toPublic(c)));
   }
 
   /** Professor vê só os próprios cursos; admin vê todos, para poder gerenciar a plataforma inteira. */
   async findMine(user: JwtUser) {
     const filter = user.role === Role.ADMIN ? {} : { teacherId: user.userId };
-    const courses = await this.courseModel.find(filter).populate('teacherId', 'name');
+    const courses = await this.courseModel
+      .find(filter)
+      .populate('teacherId', 'name');
     return Promise.all(courses.map((c) => this.toPublic(c)));
   }
 
@@ -53,7 +66,9 @@ export class CoursesService {
   }
 
   async findByIdPublic(id: string) {
-    const course = await this.courseModel.findById(id).populate('teacherId', 'name');
+    const course = await this.courseModel
+      .findById(id)
+      .populate('teacherId', 'name');
     if (!course) throw new NotFoundException('Curso não encontrado');
     return this.toPublic(course);
   }
@@ -62,9 +77,13 @@ export class CoursesService {
     const course = await this.findById(id);
     this.assertOwnership(course, user);
     if (dto.published && !course.published) {
-      const lessonCount = await this.lessonModel.countDocuments(idFilter('$courseId', id));
+      const lessonCount = await this.lessonModel.countDocuments(
+        idFilter('$courseId', id),
+      );
       if (lessonCount === 0) {
-        throw new BadRequestException('O curso precisa de pelo menos uma aula para ser publicado');
+        throw new BadRequestException(
+          'O curso precisa de pelo menos uma aula para ser publicado',
+        );
       }
     }
     Object.assign(course, dto);
@@ -86,12 +105,20 @@ export class CoursesService {
     await course.deleteOne();
   }
 
-  async uploadCover(id: string, file: { buffer: Buffer; mimetype: string; originalname: string }, user: JwtUser) {
+  async uploadCover(
+    id: string,
+    file: { buffer: Buffer; mimetype: string; originalname: string },
+    user: JwtUser,
+  ) {
     const course = await this.findById(id);
     this.assertOwnership(course, user);
     const previousKey = course.coverImageKey;
     const key = `courses/${id}/${randomUUID()}-${file.originalname}`;
-    const { storageKey } = await this.storage.upload(key, file.buffer, file.mimetype);
+    const { storageKey } = await this.storage.upload(
+      key,
+      file.buffer,
+      file.mimetype,
+    );
     course.coverImageKey = storageKey;
     await course.save();
     if (previousKey) {
@@ -108,7 +135,10 @@ export class CoursesService {
   }
 
   private async toPublic(course: CourseDocument) {
-    const { coverImageKey, ...json } = course.toJSON() as unknown as Record<string, unknown> & {
+    const { coverImageKey, ...json } = course.toJSON() as unknown as Record<
+      string,
+      unknown
+    > & {
       coverImageKey?: string;
     };
     return {

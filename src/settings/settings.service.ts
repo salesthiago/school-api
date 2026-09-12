@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { BunnySettings, BunnySettingsDocument } from './schemas/bunny-settings.schema';
+import {
+  BunnySettings,
+  BunnySettingsDocument,
+} from './schemas/bunny-settings.schema';
 import { UpdateBunnySettingsDto } from './dto/update-bunny-settings.dto';
 
 export interface BunnyPublicSettings {
@@ -20,7 +23,8 @@ export interface BunnyProviderConfig {
 @Injectable()
 export class SettingsService {
   constructor(
-    @InjectModel(BunnySettings.name) private bunnySettingsModel: Model<BunnySettingsDocument>,
+    @InjectModel(BunnySettings.name)
+    private bunnySettingsModel: Model<BunnySettingsDocument>,
   ) {}
 
   async getBunnySettings(): Promise<BunnyPublicSettings> {
@@ -39,7 +43,8 @@ export class SettingsService {
   ): Promise<BunnyPublicSettings> {
     const doc = await this.getOrCreateDefault();
     if (dto.libraryId !== undefined) doc.libraryId = dto.libraryId;
-    if (dto.pullZoneHostname !== undefined) doc.pullZoneHostname = dto.pullZoneHostname;
+    if (dto.pullZoneHostname !== undefined)
+      doc.pullZoneHostname = dto.pullZoneHostname;
     if (dto.enabled !== undefined) doc.enabled = dto.enabled;
     if (dto.apiKey) doc.apiKey = dto.apiKey;
     doc.updatedBy = new Types.ObjectId(userId);
@@ -50,7 +55,11 @@ export class SettingsService {
   async getBunnyProviderConfig(): Promise<BunnyProviderConfig | null> {
     const doc = await this.getOrCreateDefault();
     if (!doc.enabled || !doc.libraryId || !doc.apiKey) return null;
-    return { libraryId: doc.libraryId, apiKey: doc.apiKey, pullZoneHostname: doc.pullZoneHostname };
+    return {
+      libraryId: doc.libraryId,
+      apiKey: doc.apiKey,
+      pullZoneHostname: doc.pullZoneHostname,
+    };
   }
 
   private async getOrCreateDefault(): Promise<BunnySettingsDocument> {

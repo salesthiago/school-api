@@ -16,7 +16,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
-import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../common/decorators/current-user.decorator';
 import { UsersService } from './users.service';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -47,7 +50,10 @@ export class UsersController {
   @Post('me/avatar')
   @Roles(...ANY_ROLE)
   @UseInterceptors(FileInterceptor('file'))
-  uploadAvatar(@CurrentUser() user: JwtUser, @UploadedFile() file: Express.Multer.File) {
+  uploadAvatar(
+    @CurrentUser() user: JwtUser,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     return this.usersService.setAvatar(user.userId, file);
   }
 

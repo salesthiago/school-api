@@ -15,24 +15,39 @@ export class S3StorageProvider implements StorageProvider {
 
   constructor(private readonly config: ConfigService) {}
 
-  async upload(key: string, buffer: Buffer, mimeType: string): Promise<UploadResult> {
+  async upload(
+    key: string,
+    buffer: Buffer,
+    mimeType: string,
+  ): Promise<UploadResult> {
     await this.getClient().send(
-      new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: buffer, ContentType: mimeType }),
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: mimeType,
+      }),
     );
     return { storageKey: key, sizeBytes: buffer.length };
   }
 
   getSignedUrl(key: string, expiresInSeconds: number): Promise<string> {
     const command = new GetObjectCommand({ Bucket: this.bucket, Key: key });
-    return getSignedUrl(this.getClient(), command, { expiresIn: expiresInSeconds });
+    return getSignedUrl(this.getClient(), command, {
+      expiresIn: expiresInSeconds,
+    });
   }
 
   async delete(key: string): Promise<void> {
-    await this.getClient().send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+    await this.getClient().send(
+      new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
   }
 
   async download(key: string): Promise<Buffer> {
-    const result = await this.getClient().send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    const result = await this.getClient().send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
     return Buffer.from(await result.Body!.transformToByteArray());
   }
 
@@ -54,7 +69,9 @@ export class S3StorageProvider implements StorageProvider {
         region: this.config.get<string>('AWS_REGION'),
         // Sem credenciais explícitas, o SDK cai para o provider chain padrão
         // (variáveis AWS_* do ambiente, IAM role da instância, etc).
-        ...(accessKeyId && secretAccessKey ? { credentials: { accessKeyId, secretAccessKey } } : {}),
+        ...(accessKeyId && secretAccessKey
+          ? { credentials: { accessKeyId, secretAccessKey } }
+          : {}),
       });
     }
     return this.client;

@@ -1,4 +1,8 @@
-import { BadGatewayException, BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  Injectable,
+} from '@nestjs/common';
 import { createHash } from 'crypto';
 import { SettingsService } from '../settings/settings.service';
 
@@ -41,22 +45,33 @@ export class BunnyStreamService {
   async createDirectUpload(title: string): Promise<DirectUploadCredentials> {
     const config = await this.settingsService.getBunnyProviderConfig();
     if (!config) {
-      throw new BadRequestException('Integração com o Bunny.net não está configurada ou está desativada');
+      throw new BadRequestException(
+        'Integração com o Bunny.net não está configurada ou está desativada',
+      );
     }
 
-    const createResponse = await fetch(`${BUNNY_STREAM_API}/library/${config.libraryId}/videos`, {
-      method: 'POST',
-      headers: { AccessKey: config.apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title }),
-    });
+    const createResponse = await fetch(
+      `${BUNNY_STREAM_API}/library/${config.libraryId}/videos`,
+      {
+        method: 'POST',
+        headers: {
+          AccessKey: config.apiKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title }),
+      },
+    );
     if (!createResponse.ok) {
       throw new BadGatewayException('Falha ao criar o vídeo no Bunny.net');
     }
     const created = (await createResponse.json()) as { guid: string };
 
-    const authorizationExpire = Math.floor(Date.now() / 1000) + DIRECT_UPLOAD_TTL_SECONDS;
+    const authorizationExpire =
+      Math.floor(Date.now() / 1000) + DIRECT_UPLOAD_TTL_SECONDS;
     const authorizationSignature = createHash('sha256')
-      .update(`${config.libraryId}${config.apiKey}${authorizationExpire}${created.guid}`)
+      .update(
+        `${config.libraryId}${config.apiKey}${authorizationExpire}${created.guid}`,
+      )
       .digest('hex');
 
     return {
@@ -75,10 +90,13 @@ export class BunnyStreamService {
   async deleteVideo(externalId: string): Promise<void> {
     const config = await this.settingsService.getBunnyProviderConfig();
     if (!config) return;
-    await fetch(`${BUNNY_STREAM_API}/library/${config.libraryId}/videos/${externalId}`, {
-      method: 'DELETE',
-      headers: { AccessKey: config.apiKey },
-    });
+    await fetch(
+      `${BUNNY_STREAM_API}/library/${config.libraryId}/videos/${externalId}`,
+      {
+        method: 'DELETE',
+        headers: { AccessKey: config.apiKey },
+      },
+    );
   }
 
   /**
@@ -91,9 +109,12 @@ export class BunnyStreamService {
     const config = await this.settingsService.getBunnyProviderConfig();
     if (!config) return null;
 
-    const response = await fetch(`${BUNNY_STREAM_API}/library/${config.libraryId}/videos/${externalId}`, {
-      headers: { AccessKey: config.apiKey },
-    });
+    const response = await fetch(
+      `${BUNNY_STREAM_API}/library/${config.libraryId}/videos/${externalId}`,
+      {
+        headers: { AccessKey: config.apiKey },
+      },
+    );
     if (!response.ok) return null;
 
     const data = (await response.json()) as { status: number };

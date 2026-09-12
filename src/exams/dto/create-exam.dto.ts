@@ -1,4 +1,14 @@
-import { IsBoolean, IsEnum, IsMongoId, IsNumber, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsMongoId,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { ExamScope } from '../schemas/exam.schema';
 
 export class CreateExamDto {

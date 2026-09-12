@@ -20,13 +20,23 @@ export class Enrollment {
   studentId: Types.ObjectId;
 
   /** Ausente quando a matrícula é na trilha de aulas avulsas do curso, não num módulo. */
-  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: false, index: true })
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'CourseModule',
+    required: false,
+    index: true,
+  })
   moduleId?: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Course', required: true })
   courseId: Types.ObjectId;
 
-  @Prop({ type: String, enum: EnrollmentStatus, default: EnrollmentStatus.ACTIVE, index: true })
+  @Prop({
+    type: String,
+    enum: EnrollmentStatus,
+    default: EnrollmentStatus.ACTIVE,
+    index: true,
+  })
   status: EnrollmentStatus;
 
   @Prop({ type: String, enum: EnrollmentSource, required: true })
@@ -40,4 +50,7 @@ export class Enrollment {
 }
 
 export const EnrollmentSchema = SchemaFactory.createForClass(Enrollment);
-EnrollmentSchema.index({ studentId: 1, moduleId: 1, courseId: 1 }, { unique: true });
+EnrollmentSchema.index(
+  { studentId: 1, moduleId: 1, courseId: 1 },
+  { unique: true },
+);

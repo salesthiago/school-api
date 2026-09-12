@@ -5,7 +5,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
-import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../common/decorators/current-user.decorator';
 
 @Controller('settings')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -19,7 +22,10 @@ export class SettingsController {
   }
 
   @Put('bunny')
-  updateBunny(@Body() dto: UpdateBunnySettingsDto, @CurrentUser() user: JwtUser) {
+  updateBunny(
+    @Body() dto: UpdateBunnySettingsDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.settingsService.updateBunnySettings(dto, user.userId);
   }
 }

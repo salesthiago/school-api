@@ -2,19 +2,30 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Attachment, AttachmentDocument } from './schemas/attachment.schema';
-import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
+import {
+  STORAGE_PROVIDER,
+  StorageProvider,
+} from '../storage/storage-provider.interface';
 import { randomUUID } from 'crypto';
 
 @Injectable()
 export class AttachmentsService {
   constructor(
-    @InjectModel(Attachment.name) private attachmentModel: Model<AttachmentDocument>,
+    @InjectModel(Attachment.name)
+    private attachmentModel: Model<AttachmentDocument>,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
   ) {}
 
-  async upload(lessonId: string, file: { originalname: string; buffer: Buffer; mimetype: string }) {
+  async upload(
+    lessonId: string,
+    file: { originalname: string; buffer: Buffer; mimetype: string },
+  ) {
     const key = `lessons/${lessonId}/${randomUUID()}-${file.originalname}`;
-    const { storageKey, sizeBytes } = await this.storage.upload(key, file.buffer, file.mimetype);
+    const { storageKey, sizeBytes } = await this.storage.upload(
+      key,
+      file.buffer,
+      file.mimetype,
+    );
     return this.attachmentModel.create({
       fileName: file.originalname,
       storageKey,

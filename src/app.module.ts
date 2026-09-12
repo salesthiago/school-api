@@ -35,7 +35,9 @@ import { NotesModule } from './notes/notes.module';
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        uri: config.get<string>('MONGODB_URI') ?? 'mongodb://localhost:27017/gpschool',
+        uri:
+          config.get<string>('MONGODB_URI') ??
+          'mongodb://localhost:27017/gpschool',
       }),
     }),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),

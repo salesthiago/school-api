@@ -19,7 +19,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
-import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../common/decorators/current-user.decorator';
 import { EnrollmentsService } from '../enrollments/enrollments.service';
 
 @Controller('lessons')
@@ -74,7 +77,11 @@ export class LessonsController {
   @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles(Role.TEACHER, Role.ADMIN)
-  update(@Param('id') id: string, @Body() dto: UpdateLessonDto, @CurrentUser() user: JwtUser) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateLessonDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.lessonsService.update(id, dto, user);
   }
 
@@ -115,9 +122,16 @@ export class LessonsController {
    * de aulas avulsas do curso quando a aula não tem módulo) — professor/admin sempre podem
    * pré-visualizar o próprio conteúdo.
    */
-  private async assertCanView(access: { courseId: string; moduleId?: string }, user: JwtUser) {
+  private async assertCanView(
+    access: { courseId: string; moduleId?: string },
+    user: JwtUser,
+  ) {
     if (user.role !== Role.STUDENT) return;
-    const canAccess = await this.enrollmentsService.canAccess(user.userId, access.courseId, access.moduleId);
+    const canAccess = await this.enrollmentsService.canAccess(
+      user.userId,
+      access.courseId,
+      access.moduleId,
+    );
     if (!canAccess) {
       throw new ForbiddenException(
         access.moduleId

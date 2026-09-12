@@ -28,24 +28,35 @@ export class VideoReconciliationService {
     if (this.running) return;
     this.running = true;
     try {
-      const stuck = await this.lessonModel.find({ 'video.status': 'processing' });
+      const stuck = await this.lessonModel.find({
+        'video.status': 'processing',
+      });
       if (!stuck.length) return;
 
-      this.logger.debug(`Reconciliação: ${stuck.length} vídeo(s) em processamento para verificar`);
+      this.logger.debug(
+        `Reconciliação: ${stuck.length} vídeo(s) em processamento para verificar`,
+      );
 
       for (const lesson of stuck) {
         try {
-          const bunnyStatus = await this.bunnyStreamService.getVideoStatus(lesson.video!.externalId);
+          const bunnyStatus = await this.bunnyStreamService.getVideoStatus(
+            lesson.video!.externalId,
+          );
           if (bunnyStatus === null) continue;
 
-          const changed = await this.videoStatusService.applyBunnyStatus(lesson, bunnyStatus);
+          const changed = await this.videoStatusService.applyBunnyStatus(
+            lesson,
+            bunnyStatus,
+          );
           if (changed) {
             this.logger.log(
               `Vídeo da lesson ${lesson.id} atualizado via reconciliação (status Bunny=${bunnyStatus})`,
             );
           }
         } catch (err) {
-          this.logger.error(`Falha ao reconciliar vídeo da lesson ${lesson.id}: ${(err as Error).message}`);
+          this.logger.error(
+            `Falha ao reconciliar vídeo da lesson ${lesson.id}: ${(err as Error).message}`,
+          );
         }
       }
     } finally {

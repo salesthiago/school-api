@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { LessonProgress, LessonProgressDocument } from './schemas/lesson-progress.schema';
+import {
+  LessonProgress,
+  LessonProgressDocument,
+} from './schemas/lesson-progress.schema';
 import { UpdateProgressDto } from './dto/update-progress.dto';
 import { LessonDocument } from '../lessons/schemas/lesson.schema';
 import { LessonsService } from '../lessons/lessons.service';
@@ -24,7 +27,8 @@ export interface ModuleProgressSummary {
 @Injectable()
 export class ProgressService {
   constructor(
-    @InjectModel(LessonProgress.name) private progressModel: Model<LessonProgressDocument>,
+    @InjectModel(LessonProgress.name)
+    private progressModel: Model<LessonProgressDocument>,
     private lessonsService: LessonsService,
     private modulesService: ModulesService,
     private coursesService: CoursesService,
@@ -34,12 +38,17 @@ export class ProgressService {
   async upsert(studentId: string, dto: UpdateProgressDto) {
     const lesson = await this.lessonsService.findById(dto.lessonId);
     const threshold = dto.moduleId
-      ? (await this.modulesService.findById(dto.moduleId)).completionThresholdPercent
-      : (await this.coursesService.findById(lesson.courseId.toString())).completionThresholdPercent;
+      ? (await this.modulesService.findById(dto.moduleId))
+          .completionThresholdPercent
+      : (await this.coursesService.findById(lesson.courseId.toString()))
+          .completionThresholdPercent;
 
     const percentage = Math.min(
       100,
-      Math.round((dto.watchedSeconds / Math.max(lesson.video?.durationSeconds ?? 0, 1)) * 100),
+      Math.round(
+        (dto.watchedSeconds / Math.max(lesson.video?.durationSeconds ?? 0, 1)) *
+          100,
+      ),
     );
     const completed = percentage >= threshold;
 
@@ -74,20 +83,44 @@ export class ProgressService {
     };
   }
 
-  async getModuleSummary(studentId: string, moduleId: string): Promise<ModuleProgressSummary> {
+  async getModuleSummary(
+    studentId: string,
+    moduleId: string,
+  ): Promise<ModuleProgressSummary> {
     const lessons = await this.lessonsService.findByModule(moduleId);
     const courseModule = await this.modulesService.findById(moduleId);
-    const course = await this.coursesService.findById(courseModule.courseId.toString());
-    const examStatus = await this.examsService.getFinalExamStatus(moduleId, studentId);
-    return this.summarize(studentId, lessons, course.examWeightPercent, examStatus);
+    const course = await this.coursesService.findById(
+      courseModule.courseId.toString(),
+    );
+    const examStatus = await this.examsService.getFinalExamStatus(
+      moduleId,
+      studentId,
+    );
+    return this.summarize(
+      studentId,
+      lessons,
+      course.examWeightPercent,
+      examStatus,
+    );
   }
 
   /** Conclusão da trilha de aulas avulsas do curso (aulas sem módulo). */
-  async getCourseTrackSummary(studentId: string, courseId: string): Promise<ModuleProgressSummary> {
+  async getCourseTrackSummary(
+    studentId: string,
+    courseId: string,
+  ): Promise<ModuleProgressSummary> {
     const lessons = await this.lessonsService.findLooseByCourse(courseId);
     const course = await this.coursesService.findById(courseId);
-    const examStatus = await this.examsService.getFinalExamStatusForCourse(courseId, studentId);
-    return this.summarize(studentId, lessons, course.examWeightPercent, examStatus);
+    const examStatus = await this.examsService.getFinalExamStatusForCourse(
+      courseId,
+      studentId,
+    );
+    return this.summarize(
+      studentId,
+      lessons,
+      course.examWeightPercent,
+      examStatus,
+    );
   }
 
   private async summarize(
@@ -104,7 +137,9 @@ export class ProgressService {
       lessonId: { $in: mandatoryIds },
       completed: true,
     });
-    const completedIds = new Set(completedDocs.map((d) => d.lessonId.toString()));
+    const completedIds = new Set(
+      completedDocs.map((d) => d.lessonId.toString()),
+    );
 
     const nextLesson = mandatoryLessons.find((l) => !completedIds.has(l.id));
 
@@ -113,7 +148,9 @@ export class ProgressService {
       : 0;
 
     const hasExam = examStatus.exists;
-    const weight = hasExam ? Math.min(100, Math.max(0, examWeightPercent)) / 100 : 0;
+    const weight = hasExam
+      ? Math.min(100, Math.max(0, examWeightPercent)) / 100
+      : 0;
     const examPercentage = examStatus.passed ? 100 : 0;
     const percentage = hasExam
       ? Math.round(lessonsPercentage * (1 - weight) + examPercentage * weight)

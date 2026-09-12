@@ -3,7 +3,10 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Exam, ExamSchema } from './schemas/exam.schema';
 import { Question, QuestionSchema } from './schemas/question.schema';
 import { ExamAttempt, ExamAttemptSchema } from './schemas/exam-attempt.schema';
-import { CourseModule, CourseModuleSchema } from '../modules/schemas/module.schema';
+import {
+  CourseModule,
+  CourseModuleSchema,
+} from '../modules/schemas/module.schema';
 import { Course, CourseSchema } from '../courses/schemas/course.schema';
 import { Lesson, LessonSchema } from '../lessons/schemas/lesson.schema';
 import { ExamsService } from './exams.service';

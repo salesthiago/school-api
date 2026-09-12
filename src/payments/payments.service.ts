@@ -1,9 +1,15 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Payment, PaymentDocument, PaymentStatus } from './schemas/payment.schema';
+import {
+  Payment,
+  PaymentDocument,
+  PaymentStatus,
+} from './schemas/payment.schema';
 import { CheckoutDto } from './dto/checkout.dto';
-import { PAYMENT_PROVIDER, PaymentProvider } from './providers/payment-provider.interface';
+import { PaymentProviderRegistry } from './providers/provider-registry';
+import { PaymentSettingsService } from './payment-settings.service';
+import { PaymentProviderKey } from '../common/enums/payment-provider-key.enum';
 import { OrdersService } from '../orders/orders.service';
 import { ModulesService } from '../modules/modules.service';
 import { CoursesService } from '../courses/courses.service';
@@ -15,7 +21,8 @@ import { JwtUser } from '../common/decorators/current-user.decorator';
 export class PaymentsService {
   constructor(
     @InjectModel(Payment.name) private paymentModel: Model<PaymentDocument>,
-    @Inject(PAYMENT_PROVIDER) private provider: PaymentProvider,
+    private registry: PaymentProviderRegistry,
+    private paymentSettings: PaymentSettingsService,
     private ordersService: OrdersService,
     private modulesService: ModulesService,
     private coursesService: CoursesService,
@@ -42,11 +49,17 @@ export class PaymentsService {
       }
       const course = await this.coursesService.findById(dto.courseId);
       if (course.free || !course.bundlePrice) {
-        throw new BadRequestException('Trilha de aulas gratuita não requer pagamento');
+        throw new BadRequestException(
+          'Trilha de aulas gratuita não requer pagamento',
+        );
       }
       courseId = dto.courseId;
       amount = course.bundlePrice;
     }
+
+    const { providerKey, config, recurring } =
+      await this.paymentSettings.resolveForMethod(dto.paymentMethod);
+    const provider = this.registry.get(providerKey);
 
     const order = await this.ordersService.create({
       studentId: student.userId,
@@ -56,16 +69,20 @@ export class PaymentsService {
       paymentMethod: dto.paymentMethod,
     });
 
-    const charge = await this.provider.createCharge({
-      orderId: order.id,
-      amount,
-      method: dto.paymentMethod,
-      payer: { name: student.email, email: student.email },
-    });
+    const charge = await provider.createCharge(
+      {
+        orderId: order.id,
+        amount,
+        method: dto.paymentMethod,
+        payer: { name: student.email, email: student.email },
+        recurring,
+      },
+      config,
+    );
 
     const payment = await this.paymentModel.create({
       orderId: order.id,
-      provider: 'itau',
+      provider: providerKey,
       providerReference: charge.providerReference,
       status: PaymentStatus.PENDING,
       instructions: charge as unknown as Record<string, unknown>,
@@ -74,16 +91,29 @@ export class PaymentsService {
     return { order, payment: { id: payment.id, ...charge } };
   }
 
-  async handleWebhook(rawBody: Buffer, headers: Record<string, string>) {
-    const event = this.provider.parseWebhook(rawBody, headers);
+  async handleWebhook(
+    providerKey: PaymentProviderKey,
+    rawBody: Buffer,
+    headers: Record<string, string>,
+  ) {
+    const provider = this.registry.get(providerKey);
+    const config = await this.paymentSettings.getConfigFor(providerKey);
+    const event = provider.parseWebhook(rawBody, headers, config);
 
-    const payment = await this.paymentModel.findOne({ providerReference: event.providerReference });
+    const payment = await this.paymentModel.findOne({
+      providerReference: event.providerReference,
+    });
     if (!payment) {
-      throw new BadRequestException('Pagamento não encontrado para esta referência');
+      throw new BadRequestException(
+        'Pagamento não encontrado para esta referência',
+      );
     }
 
     if (event.status !== 'paid') {
-      payment.status = event.status === 'expired' ? PaymentStatus.EXPIRED : PaymentStatus.CANCELED;
+      payment.status =
+        event.status === 'expired'
+          ? PaymentStatus.EXPIRED
+          : PaymentStatus.CANCELED;
       payment.webhookPayload = event.raw as Record<string, unknown>;
       await payment.save();
       return { received: true };
@@ -98,7 +128,9 @@ export class PaymentsService {
     payment.webhookPayload = event.raw as Record<string, unknown>;
     await payment.save();
 
-    const order = await this.ordersService.markAsPaid(payment.orderId.toString());
+    const order = await this.ordersService.markAsPaid(
+      payment.orderId.toString(),
+    );
     await this.enrollmentsService.activateFromPayment(
       order.studentId.toString(),
       order.courseId.toString(),
@@ -109,7 +141,10 @@ export class PaymentsService {
     await this.auditService.log('payment.confirmed', {
       targetType: 'Order',
       targetId: order.id,
-      metadata: { providerReference: event.providerReference, amount: order.amount },
+      metadata: {
+        providerReference: event.providerReference,
+        amount: order.amount,
+      },
     });
 
     return { received: true };

@@ -9,7 +9,9 @@ import { EnrollmentsModule } from '../enrollments/enrollments.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Attachment.name, schema: AttachmentSchema }]),
+    MongooseModule.forFeature([
+      { name: Attachment.name, schema: AttachmentSchema },
+    ]),
     StorageModule,
     LessonsModule,
     EnrollmentsModule,

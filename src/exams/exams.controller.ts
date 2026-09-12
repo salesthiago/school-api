@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
@@ -9,7 +19,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
-import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../common/decorators/current-user.decorator';
 
 @Controller('exams')
 @UseGuards(JwtAuthGuard)
@@ -49,7 +62,11 @@ export class ExamsController {
   @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles(Role.TEACHER, Role.ADMIN)
-  update(@Param('id') id: string, @Body() dto: UpdateExamDto, @CurrentUser() user: JwtUser) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateExamDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.examsService.updateExam(id, dto, user);
   }
 
@@ -63,14 +80,22 @@ export class ExamsController {
   @Post(':id/questions')
   @UseGuards(RolesGuard)
   @Roles(Role.TEACHER, Role.ADMIN)
-  addQuestion(@Param('id') id: string, @Body() dto: CreateQuestionDto, @CurrentUser() user: JwtUser) {
+  addQuestion(
+    @Param('id') id: string,
+    @Body() dto: CreateQuestionDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.examsService.addQuestion(id, dto, user);
   }
 
   @Patch('questions/:id')
   @UseGuards(RolesGuard)
   @Roles(Role.TEACHER, Role.ADMIN)
-  updateQuestion(@Param('id') id: string, @Body() dto: UpdateQuestionDto, @CurrentUser() user: JwtUser) {
+  updateQuestion(
+    @Param('id') id: string,
+    @Body() dto: UpdateQuestionDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     return this.examsService.updateQuestion(id, dto, user);
   }
 

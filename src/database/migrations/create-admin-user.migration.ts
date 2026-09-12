@@ -31,8 +31,10 @@ async function run() {
     existing.role = Role.ADMIN;
     existing.active = true;
     await existing.save();
-    // eslint-disable-next-line no-console
-    console.log(`Usuário admin já existia (${email}); role/active garantidos, senha mantida.`);
+
+    console.log(
+      `Usuário admin já existia (${email}); role/active garantidos, senha mantida.`,
+    );
   } else {
     const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
     await UserModel.create({
@@ -42,7 +44,7 @@ async function run() {
       role: Role.ADMIN,
       active: true,
     });
-    // eslint-disable-next-line no-console
+
     console.log(`Usuário admin criado com sucesso: ${email}`);
   }
 
@@ -50,7 +52,6 @@ async function run() {
 }
 
 run().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error('Falha ao criar usuário admin:', err);
   process.exit(1);
 });

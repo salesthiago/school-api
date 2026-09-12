@@ -12,13 +12,21 @@ export class LocalStorageProvider implements StorageProvider {
   private readonly publicBaseUrl: string;
 
   constructor(private config: ConfigService) {
-    this.uploadDir = this.config.get<string>('UPLOAD_DIR') ?? path.join(process.cwd(), 'uploads');
-    this.signingSecret = this.config.get<string>('STORAGE_SIGNING_SECRET') ?? 'dev-storage-secret';
-    this.publicBaseUrl = this.config.get<string>('API_PUBLIC_URL') ?? 'http://localhost:3000/api';
+    this.uploadDir =
+      this.config.get<string>('UPLOAD_DIR') ??
+      path.join(process.cwd(), 'uploads');
+    this.signingSecret =
+      this.config.get<string>('STORAGE_SIGNING_SECRET') ?? 'dev-storage-secret';
+    this.publicBaseUrl =
+      this.config.get<string>('API_PUBLIC_URL') ?? 'http://localhost:3000/api';
     fs.mkdirSync(this.uploadDir, { recursive: true });
   }
 
-  async upload(key: string, buffer: Buffer, _mimeType: string): Promise<UploadResult> {
+  async upload(
+    key: string,
+    buffer: Buffer,
+    _mimeType: string,
+  ): Promise<UploadResult> {
     const filePath = path.join(this.uploadDir, key);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, buffer);

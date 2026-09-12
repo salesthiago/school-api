@@ -15,7 +15,11 @@ import { VideoReconciliationService } from './video-reconciliation.service';
     MongooseModule.forFeature([{ name: Lesson.name, schema: LessonSchema }]),
   ],
   controllers: [VideoController],
-  providers: [BunnyStreamService, VideoStatusService, VideoReconciliationService],
+  providers: [
+    BunnyStreamService,
+    VideoStatusService,
+    VideoReconciliationService,
+  ],
   exports: [BunnyStreamService],
 })
 export class VideoModule {}

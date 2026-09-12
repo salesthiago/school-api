@@ -7,7 +7,9 @@ import { StorageModule } from '../storage/storage.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Institution.name, schema: InstitutionSchema }]),
+    MongooseModule.forFeature([
+      { name: Institution.name, schema: InstitutionSchema },
+    ]),
     StorageModule,
   ],
   controllers: [InstitutionsController],

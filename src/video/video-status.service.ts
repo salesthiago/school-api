@@ -13,7 +13,10 @@ export const ERROR_STATUSES = [5, 6]; // Error, UploadFailed
 export class VideoStatusService {
   constructor(private notificationsService: NotificationsService) {}
 
-  async applyBunnyStatus(lesson: LessonDocument, bunnyStatus: number): Promise<boolean> {
+  async applyBunnyStatus(
+    lesson: LessonDocument,
+    bunnyStatus: number,
+  ): Promise<boolean> {
     if (!lesson.video || lesson.video.status !== 'processing') return false;
 
     if (READY_STATUSES.includes(bunnyStatus)) {

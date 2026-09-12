@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from './schemas/user.schema';
-import { Enrollment, EnrollmentSchema } from '../enrollments/schemas/enrollment.schema';
+import {
+  Enrollment,
+  EnrollmentSchema,
+} from '../enrollments/schemas/enrollment.schema';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { StorageModule } from '../storage/storage.module';

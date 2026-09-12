@@ -7,12 +7,19 @@ import { Note, NoteDocument } from './schemas/note.schema';
 export class NotesService {
   constructor(@InjectModel(Note.name) private noteModel: Model<NoteDocument>) {}
 
-  async getMine(studentId: string, lessonId: string): Promise<{ text: string }> {
+  async getMine(
+    studentId: string,
+    lessonId: string,
+  ): Promise<{ text: string }> {
     const note = await this.noteModel.findOne({ studentId, lessonId });
     return { text: note?.text ?? '' };
   }
 
-  async upsert(studentId: string, lessonId: string, text: string): Promise<{ text: string }> {
+  async upsert(
+    studentId: string,
+    lessonId: string,
+    text: string,
+  ): Promise<{ text: string }> {
     await this.noteModel.findOneAndUpdate(
       { studentId, lessonId },
       { studentId, lessonId, text },

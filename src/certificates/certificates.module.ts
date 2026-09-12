@@ -8,7 +8,9 @@ import { InstitutionsModule } from '../institutions/institutions.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Certificate.name, schema: CertificateSchema }]),
+    MongooseModule.forFeature([
+      { name: Certificate.name, schema: CertificateSchema },
+    ]),
     StorageModule,
     InstitutionsModule,
   ],

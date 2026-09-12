@@ -8,7 +8,9 @@ import { CoursesModule } from '../courses/courses.module';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Enrollment.name, schema: EnrollmentSchema }]),
+    MongooseModule.forFeature([
+      { name: Enrollment.name, schema: EnrollmentSchema },
+    ]),
     ModulesModule,
     CoursesModule,
   ],

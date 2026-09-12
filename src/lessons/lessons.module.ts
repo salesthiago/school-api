@@ -1,9 +1,15 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Lesson, LessonSchema } from './schemas/lesson.schema';
-import { CourseModule, CourseModuleSchema } from '../modules/schemas/module.schema';
+import {
+  CourseModule,
+  CourseModuleSchema,
+} from '../modules/schemas/module.schema';
 import { Course, CourseSchema } from '../courses/schemas/course.schema';
-import { Attachment, AttachmentSchema } from '../attachments/schemas/attachment.schema';
+import {
+  Attachment,
+  AttachmentSchema,
+} from '../attachments/schemas/attachment.schema';
 import { LessonsService } from './lessons.service';
 import { LessonsController } from './lessons.controller';
 import { VideoModule } from '../video/video.module';

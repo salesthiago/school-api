@@ -1,7 +1,10 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { CertificatesService } from './certificates.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../common/decorators/current-user.decorator';
 
 @Controller('certificates')
 export class CertificatesController {

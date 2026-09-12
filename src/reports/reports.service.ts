@@ -4,12 +4,29 @@ import { Model } from 'mongoose';
 import { User, UserDocument } from '../users/schemas/user.schema';
 import { Course, CourseDocument } from '../courses/schemas/course.schema';
 import { Lesson, LessonDocument } from '../lessons/schemas/lesson.schema';
-import { LessonProgress, LessonProgressDocument } from '../progress/schemas/lesson-progress.schema';
-import { Enrollment, EnrollmentDocument, EnrollmentStatus } from '../enrollments/schemas/enrollment.schema';
-import { Order, OrderDocument, OrderStatus } from '../orders/schemas/order.schema';
+import {
+  LessonProgress,
+  LessonProgressDocument,
+} from '../progress/schemas/lesson-progress.schema';
+import {
+  Enrollment,
+  EnrollmentDocument,
+  EnrollmentStatus,
+} from '../enrollments/schemas/enrollment.schema';
+import {
+  Order,
+  OrderDocument,
+  OrderStatus,
+} from '../orders/schemas/order.schema';
 import { Exam, ExamDocument } from '../exams/schemas/exam.schema';
-import { ExamAttempt, ExamAttemptDocument } from '../exams/schemas/exam-attempt.schema';
-import { Certificate, CertificateDocument } from '../certificates/schemas/certificate.schema';
+import {
+  ExamAttempt,
+  ExamAttemptDocument,
+} from '../exams/schemas/exam-attempt.schema';
+import {
+  Certificate,
+  CertificateDocument,
+} from '../certificates/schemas/certificate.schema';
 import { Role } from '../common/enums/role.enum';
 
 export interface DailySeriesPoint {
@@ -36,12 +53,16 @@ export class ReportsService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
     @InjectModel(Lesson.name) private lessonModel: Model<LessonDocument>,
-    @InjectModel(LessonProgress.name) private lessonProgressModel: Model<LessonProgressDocument>,
-    @InjectModel(Enrollment.name) private enrollmentModel: Model<EnrollmentDocument>,
+    @InjectModel(LessonProgress.name)
+    private lessonProgressModel: Model<LessonProgressDocument>,
+    @InjectModel(Enrollment.name)
+    private enrollmentModel: Model<EnrollmentDocument>,
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Exam.name) private examModel: Model<ExamDocument>,
-    @InjectModel(ExamAttempt.name) private examAttemptModel: Model<ExamAttemptDocument>,
-    @InjectModel(Certificate.name) private certificateModel: Model<CertificateDocument>,
+    @InjectModel(ExamAttempt.name)
+    private examAttemptModel: Model<ExamAttemptDocument>,
+    @InjectModel(Certificate.name)
+    private certificateModel: Model<CertificateDocument>,
   ) {}
 
   async mostWatchedCourses(institutionId: string) {
@@ -122,7 +143,13 @@ export class ReportsService {
 
   async studentsWithoutCourses(institutionId: string) {
     return this.userModel.aggregate([
-      { $match: { role: Role.STUDENT, active: true, $expr: idEq('$institutionId', institutionId) } },
+      {
+        $match: {
+          role: Role.STUDENT,
+          active: true,
+          $expr: idEq('$institutionId', institutionId),
+        },
+      },
       {
         $lookup: {
           from: 'enrollments',
@@ -131,7 +158,10 @@ export class ReportsService {
             {
               $match: {
                 $expr: {
-                  $and: [idEq('$studentId', '$$studentId'), { $eq: ['$status', EnrollmentStatus.ACTIVE] }],
+                  $and: [
+                    idEq('$studentId', '$$studentId'),
+                    { $eq: ['$status', EnrollmentStatus.ACTIVE] },
+                  ],
                 },
               },
             },
@@ -140,7 +170,15 @@ export class ReportsService {
         },
       },
       { $match: { activeEnrollments: { $size: 0 } } },
-      { $project: { _id: 0, id: { $toString: '$_id' }, name: 1, email: 1, createdAt: 1 } },
+      {
+        $project: {
+          _id: 0,
+          id: { $toString: '$_id' },
+          name: 1,
+          email: 1,
+          createdAt: 1,
+        },
+      },
       { $sort: { createdAt: -1 } },
       { $limit: STUDENTS_WITHOUT_COURSES_LIMIT },
     ]);
@@ -156,7 +194,12 @@ export class ReportsService {
           pipeline: [
             {
               $match: {
-                $expr: { $and: [idEq('$courseId', '$$courseId'), { $eq: ['$status', EnrollmentStatus.ACTIVE] }] },
+                $expr: {
+                  $and: [
+                    idEq('$courseId', '$$courseId'),
+                    { $eq: ['$status', EnrollmentStatus.ACTIVE] },
+                  ],
+                },
               },
             },
             { $group: { _id: '$studentId' } },
@@ -187,7 +230,17 @@ export class ReportsService {
               { $gt: [{ $size: '$enrolledStudents' }, 0] },
               {
                 $round: [
-                  { $multiply: [{ $divide: [{ $size: '$completedStudents' }, { $size: '$enrolledStudents' }] }, 100] },
+                  {
+                    $multiply: [
+                      {
+                        $divide: [
+                          { $size: '$completedStudents' },
+                          { $size: '$enrolledStudents' },
+                        ],
+                      },
+                      100,
+                    ],
+                  },
                   1,
                 ],
               },
@@ -227,7 +280,15 @@ export class ReportsService {
         },
         { $sort: { total: -1 } },
         { $limit: RANKING_LIMIT },
-        { $project: { _id: 0, courseId: { $toString: '$_id' }, title: 1, total: 1, orders: 1 } },
+        {
+          $project: {
+            _id: 0,
+            courseId: { $toString: '$_id' },
+            title: 1,
+            total: 1,
+            orders: 1,
+          },
+        },
       ]),
       this.orderModel.aggregate<{ _id: string; value: number }>([
         { $match: { status: OrderStatus.PAID, paidAt: { $gte: since } } },
@@ -304,7 +365,12 @@ export class ReportsService {
           examTitle: 1,
           courseTitle: 1,
           attempts: 1,
-          passRatePercent: { $round: [{ $multiply: [{ $divide: ['$passedCount', '$attempts'] }, 100] }, 1] },
+          passRatePercent: {
+            $round: [
+              { $multiply: [{ $divide: ['$passedCount', '$attempts'] }, 100] },
+              1,
+            ],
+          },
           avgScore: { $round: ['$avgScore', 1] },
         },
       },
@@ -320,7 +386,12 @@ export class ReportsService {
     const [byDayRows, byCourse] = await Promise.all([
       this.certificateModel.aggregate<{ _id: string; value: number }>([
         { $match: { ...institutionMatch, issuedAt: { $gte: since } } },
-        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$issuedAt' } }, value: { $sum: 1 } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$issuedAt' } },
+            value: { $sum: 1 },
+          },
+        },
       ]),
       this.certificateModel.aggregate([
         { $match: institutionMatch },
@@ -334,7 +405,14 @@ export class ReportsService {
           },
         },
         { $unwind: '$course' },
-        { $project: { _id: 0, courseId: { $toString: '$_id' }, title: '$course.title', count: 1 } },
+        {
+          $project: {
+            _id: 0,
+            courseId: { $toString: '$_id' },
+            title: '$course.title',
+            count: 1,
+          },
+        },
         { $sort: { count: -1 } },
         { $limit: RANKING_LIMIT },
       ]),
@@ -350,7 +428,11 @@ export class ReportsService {
     return since;
   }
 
-  private fillSeries(rows: { _id: string; value: number }[], since: Date, days: number): DailySeriesPoint[] {
+  private fillSeries(
+    rows: { _id: string; value: number }[],
+    since: Date,
+    days: number,
+  ): DailySeriesPoint[] {
     const byDate = new Map(rows.map((r) => [r._id, r.value]));
     const series: DailySeriesPoint[] = [];
     for (let i = 0; i < days; i++) {
@@ -363,7 +445,6 @@ export class ReportsService {
   }
 
   private async dailySeries(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: Model<any>,
     match: Record<string, unknown>,
     dateField: string,
@@ -372,7 +453,12 @@ export class ReportsService {
     const since = this.sinceDate(days);
     const rows = await model.aggregate<{ _id: string; value: number }>([
       { $match: { ...match, [dateField]: { $gte: since } } },
-      { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: `$${dateField}` } }, value: { $sum: 1 } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: `$${dateField}` } },
+          value: { $sum: 1 },
+        },
+      },
     ]);
     return this.fillSeries(rows, since, days);
   }

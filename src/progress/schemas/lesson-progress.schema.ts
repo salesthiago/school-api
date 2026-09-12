@@ -12,7 +12,12 @@ export class LessonProgress {
   lessonId: Types.ObjectId;
 
   /** Ausente quando a aula é avulsa (sem módulo). */
-  @Prop({ type: Types.ObjectId, ref: 'CourseModule', required: false, index: true })
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'CourseModule',
+    required: false,
+    index: true,
+  })
   moduleId?: Types.ObjectId;
 
   @Prop({ required: true, default: 0, min: 0 })
@@ -28,5 +33,6 @@ export class LessonProgress {
   completedAt?: Date;
 }
 
-export const LessonProgressSchema = SchemaFactory.createForClass(LessonProgress);
+export const LessonProgressSchema =
+  SchemaFactory.createForClass(LessonProgress);
 LessonProgressSchema.index({ studentId: 1, lessonId: 1 }, { unique: true });

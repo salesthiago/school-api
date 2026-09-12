@@ -4,7 +4,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
-import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../common/decorators/current-user.decorator';
 
 const DEFAULT_DAYS = 30;
 const MIN_DAYS = 7;
@@ -29,7 +32,10 @@ export class ReportsController {
 
   @Get('registrations')
   registrations(@CurrentUser() user: JwtUser, @Query('days') days?: string) {
-    return this.reportsService.registrations(user.institutionId, parseDays(days));
+    return this.reportsService.registrations(
+      user.institutionId,
+      parseDays(days),
+    );
   }
 
   @Get('students-without-courses')
@@ -53,7 +59,13 @@ export class ReportsController {
   }
 
   @Get('certificates-issued')
-  certificatesIssued(@CurrentUser() user: JwtUser, @Query('days') days?: string) {
-    return this.reportsService.certificatesIssued(user.institutionId, parseDays(days));
+  certificatesIssued(
+    @CurrentUser() user: JwtUser,
+    @Query('days') days?: string,
+  ) {
+    return this.reportsService.certificatesIssued(
+      user.institutionId,
+      parseDays(days),
+    );
   }
 }

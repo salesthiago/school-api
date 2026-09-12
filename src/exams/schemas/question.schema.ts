@@ -16,7 +16,8 @@ export class QuestionOption {
   @Prop({ required: true, default: false })
   correct: boolean;
 }
-export const QuestionOptionSchema = SchemaFactory.createForClass(QuestionOption);
+export const QuestionOptionSchema =
+  SchemaFactory.createForClass(QuestionOption);
 
 @Schema({ timestamps: true })
 export class Question {
@@ -26,7 +27,12 @@ export class Question {
   @Prop({ required: true })
   text: string;
 
-  @Prop({ type: String, enum: QuestionType, required: true, default: QuestionType.SINGLE })
+  @Prop({
+    type: String,
+    enum: QuestionType,
+    required: true,
+    default: QuestionType.SINGLE,
+  })
   type: QuestionType;
 
   @Prop({ type: [QuestionOptionSchema], required: true })

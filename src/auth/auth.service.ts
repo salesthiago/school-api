@@ -24,7 +24,12 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const user = await this.usersService.create(dto, Role.STUDENT);
-    return this.issueTokens(user.id, user.email, user.role, user.institutionId?.toString() ?? '');
+    return this.issueTokens(
+      user.id,
+      user.email,
+      user.role,
+      user.institutionId?.toString() ?? '',
+    );
   }
 
   async login(dto: LoginDto) {
@@ -36,7 +41,12 @@ export class AuthService {
     if (!matches) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
-    return this.issueTokens(user.id, user.email, user.role, user.institutionId?.toString() ?? '');
+    return this.issueTokens(
+      user.id,
+      user.email,
+      user.role,
+      user.institutionId?.toString() ?? '',
+    );
   }
 
   async refresh(userId: string, refreshToken: string) {
@@ -44,11 +54,19 @@ export class AuthService {
     if (!user.refreshTokenHash) {
       throw new UnauthorizedException('Sessão inválida');
     }
-    const matches = await bcrypt.compare(this.digestToken(refreshToken), user.refreshTokenHash);
+    const matches = await bcrypt.compare(
+      this.digestToken(refreshToken),
+      user.refreshTokenHash,
+    );
     if (!matches) {
       throw new UnauthorizedException('Sessão inválida');
     }
-    return this.issueTokens(user.id, user.email, user.role, user.institutionId?.toString() ?? '');
+    return this.issueTokens(
+      user.id,
+      user.email,
+      user.role,
+      user.institutionId?.toString() ?? '',
+    );
   }
 
   async logout(userId: string) {
@@ -57,7 +75,8 @@ export class AuthService {
 
   verifyRefreshToken(token: string) {
     return this.jwtService.verify(token, {
-      secret: this.config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh-secret',
+      secret:
+        this.config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh-secret',
     });
   }
 
@@ -70,16 +89,23 @@ export class AuthService {
     const payload = { sub, email, role, institutionId };
 
     const accessToken = this.jwtService.sign(payload, {
-      secret: this.config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access-secret',
-      expiresIn: (this.config.get<string>('JWT_ACCESS_EXPIRES') ?? '15m') as StringValue,
+      secret:
+        this.config.get<string>('JWT_ACCESS_SECRET') ?? 'dev-access-secret',
+      expiresIn: (this.config.get<string>('JWT_ACCESS_EXPIRES') ??
+        '15m') as StringValue,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh-secret',
-      expiresIn: (this.config.get<string>('JWT_REFRESH_EXPIRES') ?? '7d') as StringValue,
+      secret:
+        this.config.get<string>('JWT_REFRESH_SECRET') ?? 'dev-refresh-secret',
+      expiresIn: (this.config.get<string>('JWT_REFRESH_EXPIRES') ??
+        '7d') as StringValue,
     });
 
-    const refreshTokenHash = await bcrypt.hash(this.digestToken(refreshToken), 10);
+    const refreshTokenHash = await bcrypt.hash(
+      this.digestToken(refreshToken),
+      10,
+    );
     await this.usersService.setRefreshTokenHash(sub, refreshTokenHash);
 
     return { accessToken, refreshToken };

@@ -52,4 +52,7 @@ export class Certificate {
 }
 
 export const CertificateSchema = SchemaFactory.createForClass(Certificate);
-CertificateSchema.index({ studentId: 1, courseId: 1, type: 1, moduleId: 1 }, { unique: true });
+CertificateSchema.index(
+  { studentId: 1, courseId: 1, type: 1, moduleId: 1 },
+  { unique: true },
+);

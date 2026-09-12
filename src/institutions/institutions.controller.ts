@@ -37,7 +37,10 @@ export class InstitutionsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('file'))
-  uploadLogo(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  uploadLogo(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     return this.institutionsService.uploadLogo(id, file);
   }
 
@@ -45,7 +48,10 @@ export class InstitutionsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('file'))
-  uploadLoginBackground(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  uploadLoginBackground(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     return this.institutionsService.uploadLoginBackground(id, file);
   }
 
@@ -53,7 +59,10 @@ export class InstitutionsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('file'))
-  uploadRegisterBackground(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  uploadRegisterBackground(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     return this.institutionsService.uploadRegisterBackground(id, file);
   }
 
@@ -61,7 +70,10 @@ export class InstitutionsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('file'))
-  uploadStudentBanner(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  uploadStudentBanner(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     return this.institutionsService.uploadStudentBanner(id, file);
   }
 
@@ -69,7 +81,10 @@ export class InstitutionsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN)
   @UseInterceptors(FileInterceptor('file'))
-  uploadCertificateTemplate(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  uploadCertificateTemplate(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     return this.institutionsService.uploadCertificateTemplate(id, file);
   }
 }

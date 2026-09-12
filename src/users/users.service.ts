@@ -11,14 +11,21 @@ import { Model } from 'mongoose';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { User, UserDocument } from './schemas/user.schema';
-import { Enrollment, EnrollmentDocument, EnrollmentStatus } from '../enrollments/schemas/enrollment.schema';
+import {
+  Enrollment,
+  EnrollmentDocument,
+  EnrollmentStatus,
+} from '../enrollments/schemas/enrollment.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateUserAdminDto } from './dto/update-user-admin.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Role } from '../common/enums/role.enum';
-import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
+import {
+  STORAGE_PROVIDER,
+  StorageProvider,
+} from '../storage/storage-provider.interface';
 
 const AVATAR_URL_TTL_SECONDS = 60 * 60;
 
@@ -26,12 +33,18 @@ const AVATAR_URL_TTL_SECONDS = 60 * 60;
 export class UsersService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    @InjectModel(Enrollment.name) private enrollmentModel: Model<EnrollmentDocument>,
+    @InjectModel(Enrollment.name)
+    private enrollmentModel: Model<EnrollmentDocument>,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
   ) {}
 
-  async create(dto: CreateUserDto, role: Role = Role.STUDENT): Promise<UserDocument> {
-    const existing = await this.userModel.findOne({ email: dto.email.toLowerCase() });
+  async create(
+    dto: CreateUserDto,
+    role: Role = Role.STUDENT,
+  ): Promise<UserDocument> {
+    const existing = await this.userModel.findOne({
+      email: dto.email.toLowerCase(),
+    });
     if (existing) {
       throw new ConflictException('E-mail já cadastrado');
     }
@@ -47,7 +60,10 @@ export class UsersService {
   }
 
   findByEmail(email: string): Promise<UserDocument | null> {
-    return this.userModel.findOne({ email: email.toLowerCase(), deletedAt: null });
+    return this.userModel.findOne({
+      email: email.toLowerCase(),
+      deletedAt: null,
+    });
   }
 
   async findById(id: string): Promise<UserDocument> {
@@ -76,13 +92,18 @@ export class UsersService {
         })
       ).map((id) => id.toString()),
     );
-    return users.map((u) => ({ ...u.toJSON(), hasEnrollments: enrolledIds.has(u.id) }));
+    return users.map((u) => ({
+      ...u.toJSON(),
+      hasEnrollments: enrolledIds.has(u.id),
+    }));
   }
 
   async update(id: string, dto: UpdateUserAdminDto) {
     const user = await this.findById(id);
     if (dto.email && dto.email.toLowerCase() !== user.email) {
-      const existing = await this.userModel.findOne({ email: dto.email.toLowerCase() });
+      const existing = await this.userModel.findOne({
+        email: dto.email.toLowerCase(),
+      });
       if (existing) throw new ConflictException('E-mail já cadastrado');
       user.email = dto.email.toLowerCase();
     }
@@ -127,7 +148,8 @@ export class UsersService {
     }
     if (dto.bio !== undefined) user.bio = dto.bio;
     if (dto.birthDate !== undefined) user.birthDate = new Date(dto.birthDate);
-    if (dto.emailNotifications !== undefined) user.emailNotifications = dto.emailNotifications;
+    if (dto.emailNotifications !== undefined)
+      user.emailNotifications = dto.emailNotifications;
     if (dto.completionNotifications !== undefined) {
       user.completionNotifications = dto.completionNotifications;
     }
@@ -138,7 +160,10 @@ export class UsersService {
   /** Troca de senha feita pelo próprio usuário — diferente de `resetPassword`, exige a senha atual. */
   async changePassword(userId: string, dto: ChangePasswordDto) {
     const user = await this.findById(userId);
-    const matches = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    const matches = await bcrypt.compare(
+      dto.currentPassword,
+      user.passwordHash,
+    );
     if (!matches) throw new BadRequestException('Senha atual incorreta');
     user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
     user.passwordChangedAt = new Date();
@@ -147,11 +172,18 @@ export class UsersService {
     return this.toProfile(user);
   }
 
-  async setAvatar(userId: string, file: { buffer: Buffer; mimetype: string; originalname: string }) {
+  async setAvatar(
+    userId: string,
+    file: { buffer: Buffer; mimetype: string; originalname: string },
+  ) {
     const user = await this.findById(userId);
     const previousKey = user.avatarKey;
     const key = `avatars/${userId}/${randomUUID()}-${file.originalname}`;
-    const { storageKey } = await this.storage.upload(key, file.buffer, file.mimetype);
+    const { storageKey } = await this.storage.upload(
+      key,
+      file.buffer,
+      file.mimetype,
+    );
     user.avatarKey = storageKey;
     await user.save();
     if (previousKey) {
@@ -182,7 +214,10 @@ export class UsersService {
       passwordChangedAt: user.passwordChangedAt,
       createdAt: (user as unknown as { createdAt?: Date }).createdAt,
       avatarUrl: user.avatarKey
-        ? await this.storage.getSignedUrl(user.avatarKey, AVATAR_URL_TTL_SECONDS)
+        ? await this.storage.getSignedUrl(
+            user.avatarKey,
+            AVATAR_URL_TTL_SECONDS,
+          )
         : undefined,
     };
   }

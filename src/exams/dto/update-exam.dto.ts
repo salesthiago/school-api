@@ -11,5 +11,10 @@ import { CreateExamDto } from './create-exam.dto';
  * UpdateModuleDto/UpdateLessonDto/UpdateCourseDto).
  */
 export class UpdateExamDto extends PartialType(
-  OmitType(CreateExamDto, ['scope', 'lessonId', 'moduleId', 'courseId'] as const),
+  OmitType(CreateExamDto, [
+    'scope',
+    'lessonId',
+    'moduleId',
+    'courseId',
+  ] as const),
 ) {}

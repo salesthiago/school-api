@@ -1,4 +1,11 @@
-import { Controller, ForbiddenException, Get, Param, Query, Res } from '@nestjs/common';
+import {
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  Query,
+  Res,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { LocalStorageProvider } from './local-storage.provider';
 

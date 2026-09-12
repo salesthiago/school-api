@@ -11,11 +11,16 @@ import {
 @Injectable()
 export class EnrollmentsService {
   constructor(
-    @InjectModel(Enrollment.name) private enrollmentModel: Model<EnrollmentDocument>,
+    @InjectModel(Enrollment.name)
+    private enrollmentModel: Model<EnrollmentDocument>,
   ) {}
 
   /** moduleId ausente = acesso à trilha de aulas avulsas do curso, não a um módulo específico. */
-  async canAccess(studentId: string, courseId: string, moduleId?: string): Promise<boolean> {
+  async canAccess(
+    studentId: string,
+    courseId: string,
+    moduleId?: string,
+  ): Promise<boolean> {
     const enrollment = await this.enrollmentModel.findOne({
       studentId,
       courseId,

@@ -1,4 +1,11 @@
-import { BadRequestException, Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { EnrollmentsService } from './enrollments.service';
 import { ManualEnrollDto } from './dto/manual-enroll.dto';
 import { EnrollDto } from './dto/enroll.dto';
@@ -8,7 +15,10 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '../common/enums/role.enum';
-import { CurrentUser, JwtUser } from '../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  JwtUser,
+} from '../common/decorators/current-user.decorator';
 
 @Controller('enrollments')
 @UseGuards(JwtAuthGuard)
@@ -36,7 +46,9 @@ export class EnrollmentsController {
     if (dto.moduleId) {
       const courseModule = await this.modulesService.findById(dto.moduleId);
       if (!courseModule.free && courseModule.price > 0) {
-        throw new BadRequestException('Este módulo é pago; utilize o checkout para se matricular');
+        throw new BadRequestException(
+          'Este módulo é pago; utilize o checkout para se matricular',
+        );
       }
       return this.enrollmentsService.enrollFree(
         user.userId,
@@ -50,7 +62,9 @@ export class EnrollmentsController {
     }
     const course = await this.coursesService.findById(dto.courseId);
     if (!course.free && (course.bundlePrice ?? 0) > 0) {
-      throw new BadRequestException('Este curso é pago; utilize o checkout para se matricular');
+      throw new BadRequestException(
+        'Este curso é pago; utilize o checkout para se matricular',
+      );
     }
     return this.enrollmentsService.enrollFree(user.userId, dto.courseId);
   }
@@ -58,7 +72,10 @@ export class EnrollmentsController {
   @Post('manual')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  async manualEnroll(@Body() dto: ManualEnrollDto, @CurrentUser() user: JwtUser) {
+  async manualEnroll(
+    @Body() dto: ManualEnrollDto,
+    @CurrentUser() user: JwtUser,
+  ) {
     if (dto.moduleId) {
       const courseModule = await this.modulesService.findById(dto.moduleId);
       return this.enrollmentsService.grantManually(
@@ -72,6 +89,10 @@ export class EnrollmentsController {
     if (!dto.courseId) {
       throw new BadRequestException('Informe moduleId ou courseId');
     }
-    return this.enrollmentsService.grantManually(dto.studentId, dto.courseId, user.userId);
+    return this.enrollmentsService.grantManually(
+      dto.studentId,
+      dto.courseId,
+      user.userId,
+    );
   }
 }

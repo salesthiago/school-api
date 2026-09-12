@@ -116,14 +116,18 @@ próximo deploy.
 | `JWT_ACCESS_SECRET`      | gerar com `openssl rand -hex 32`                                |
 | `JWT_REFRESH_SECRET`     | gerar com `openssl rand -hex 32`                                |
 | `STORAGE_SIGNING_SECRET` | gerar com `openssl rand -hex 32` (só usada pelo driver `local`)  |
+| `APP_ENCRYPTION_KEY`     | gerar com `openssl rand -base64 32` (veja nota — NÃO rotacionar)  |
 | `AWS_REGION`             | região do bucket S3, ex.: `us-east-1`                            |
 | `AWS_S3_BUCKET`          | nome do bucket S3 dos anexos das aulas                           |
 | `AWS_ACCESS_KEY_ID`      | usuário IAM dedicado, só com permissão no bucket acima            |
 | `AWS_SECRET_ACCESS_KEY`  | secret do mesmo usuário IAM                                      |
-| `ITAU_CLIENT_ID`         | credencial real do Itaú                                         |
-| `ITAU_CLIENT_SECRET`     | credencial real do Itaú                                         |
-| `ITAU_CERTIFICATE_PATH`  | caminho do certificado **já presente na instância** (veja nota) |
-| `ITAU_WEBHOOK_SECRET`    | gerar com `openssl rand -hex 32` (ou valor combinado com o Itaú)|
+| `ITAU_CLIENT_ID`         | fallback do Itaú (se não configurado no painel admin)           |
+| `ITAU_CLIENT_SECRET`     | fallback do Itaú (se não configurado no painel admin)           |
+| `ITAU_CERTIFICATE_PATH`  | fallback: caminho do `.crt` **já presente na instância** (veja nota) |
+| `ITAU_PRIVATE_KEY_PATH`  | fallback: caminho do `.key` mTLS **já presente na instância** (veja nota) |
+| `ITAU_WEBHOOK_SECRET`    | fallback: gerar com `openssl rand -hex 32` (ou valor combinado com o Itaú)|
+| `STRIPE_SECRET_KEY`      | opcional/futuro — fallback do gateway de cartão (Stripe)         |
+| `STRIPE_WEBHOOK_SECRET`  | opcional/futuro — fallback do webhook do Stripe                  |
 | `BUNNY_WEBHOOK_SECRET`   | gerar com `openssl rand -hex 32` (veja seção 6 abaixo)          |
 
 Os campos `PORT`, `JWT_ACCESS_EXPIRES`, `JWT_REFRESH_EXPIRES`, `UPLOAD_DIR`,
@@ -132,11 +136,22 @@ direto no `backend/.github/workflows/deploy.yml` — não precisam de secret.
 Em produção `STORAGE_DRIVER=s3` fica fixo no workflow (os anexos das aulas
 vão para o S3, não para o disco da instância).
 
-> **Nota sobre `ITAU_CERTIFICATE_PATH`**: é só o *caminho* do arquivo, não o
-> certificado em si — o `.p12`/`.pem` precisa ser enviado manualmente para a
-> instância (ex.: `scp certificado.pem ubuntu@SEU-IP:/opt/school-api/certs/`)
-> e o secret deve apontar para esse caminho. O deploy automático nunca lida
-> com o arquivo do certificado.
+> **Nota sobre `ITAU_CERTIFICATE_PATH` / `ITAU_PRIVATE_KEY_PATH`**: são só os
+> *caminhos* dos arquivos, não os arquivos em si — o `.crt` e o `.key` mTLS
+> precisam ser enviados manualmente para a instância (ex.: `scp certificado.crt
+> ARQUIVO_CHAVE_PRIVADA.key ubuntu@SEU-IP:/opt/school-api/certs/`) e os secrets
+> devem apontar para esses caminhos. O deploy automático nunca lida com os
+> arquivos do certificado. Estes servem apenas de **fallback**: o caminho
+> normal é o admin subir o `.crt`/`.key` pela tela *Configurações → Integração
+> Pagamento*, que os guarda cifrados no banco (AES-256-GCM).
+
+> **Nota sobre `APP_ENCRYPTION_KEY`**: chave de 32 bytes que cifra em repouso
+> todos os segredos de pagamento salvos pelo painel admin (client_secret do
+> Itaú, chave privada mTLS, webhook secrets, chaves do Stripe). **Trocar essa
+> chave torna todos esses segredos ilegíveis** — o admin teria que recadastrar
+> tudo. Gere uma vez (`openssl rand -base64 32`), guarde num cofre e não
+> rotacione sem antes recadastrar os segredos. Sem ela definida, o boot funciona
+> normalmente, mas salvar credenciais de pagamento no painel retorna erro.
 
 ## 5. Como o deploy funciona
 

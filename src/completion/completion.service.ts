@@ -20,19 +20,30 @@ export class CompletionService {
   ) {}
 
   async checkModule(studentId: string, moduleId: string) {
-    const summary = await this.progressService.getModuleSummary(studentId, moduleId);
+    const summary = await this.progressService.getModuleSummary(
+      studentId,
+      moduleId,
+    );
     const lessonsDone =
-      summary.totalMandatoryLessons > 0 && summary.completedLessons === summary.totalMandatoryLessons;
+      summary.totalMandatoryLessons > 0 &&
+      summary.completedLessons === summary.totalMandatoryLessons;
 
-    const examStatus = await this.examsService.getFinalExamStatus(moduleId, studentId);
+    const examStatus = await this.examsService.getFinalExamStatus(
+      moduleId,
+      studentId,
+    );
     const completed = lessonsDone && examStatus.passed;
 
     let certificateId: string | undefined;
     if (completed) {
       const courseModule = await this.modulesService.findById(moduleId);
-      const course = await this.coursesService.findById(courseModule.courseId.toString());
+      const course = await this.coursesService.findById(
+        courseModule.courseId.toString(),
+      );
       const student = await this.usersService.findById(studentId);
-      const teacher = await this.usersService.findById(course.teacherId.toString());
+      const teacher = await this.usersService.findById(
+        course.teacherId.toString(),
+      );
 
       const certificate = await this.certificatesService.generate({
         studentId,
@@ -47,7 +58,13 @@ export class CompletionService {
       certificateId = certificate.id;
     }
 
-    return { lessonsDone, exam: examStatus, completed, progress: summary, certificateId };
+    return {
+      lessonsDone,
+      exam: examStatus,
+      completed,
+      progress: summary,
+      certificateId,
+    };
   }
 
   /**
@@ -55,18 +72,28 @@ export class CompletionService {
    * a prova de curso inteiro (scope COURSE) só trava o certificado 'full', não o 'track'.
    */
   async checkCourseTrack(studentId: string, courseId: string) {
-    const summary = await this.progressService.getCourseTrackSummary(studentId, courseId);
+    const summary = await this.progressService.getCourseTrackSummary(
+      studentId,
+      courseId,
+    );
     const completed =
-      summary.totalMandatoryLessons > 0 && summary.completedLessons === summary.totalMandatoryLessons;
+      summary.totalMandatoryLessons > 0 &&
+      summary.completedLessons === summary.totalMandatoryLessons;
 
     let certificateId: string | undefined;
     if (completed) {
       const course = await this.coursesService.findById(courseId);
       const student = await this.usersService.findById(studentId);
-      const teacher = await this.usersService.findById(course.teacherId.toString());
-      const looseLessons = await this.lessonsService.findLooseByCourse(courseId);
+      const teacher = await this.usersService.findById(
+        course.teacherId.toString(),
+      );
+      const looseLessons =
+        await this.lessonsService.findLooseByCourse(courseId);
       const workloadHours = Math.round(
-        looseLessons.reduce((sum, l) => sum + (l.video?.durationSeconds ?? 0), 0) / 3600,
+        looseLessons.reduce(
+          (sum, l) => sum + (l.video?.durationSeconds ?? 0),
+          0,
+        ) / 3600,
       );
 
       const certificate = await this.certificatesService.generate({
@@ -81,7 +108,12 @@ export class CompletionService {
       certificateId = certificate.id;
     }
 
-    return { lessonsDone: completed, completed, progress: summary, certificateId };
+    return {
+      lessonsDone: completed,
+      completed,
+      progress: summary,
+      certificateId,
+    };
   }
 
   /**
@@ -91,7 +123,9 @@ export class CompletionService {
    * tiver o curso completo — leitura literal do pedido do professor.
    */
   async checkCourseFull(studentId: string, courseId: string) {
-    const allModules = (await this.modulesService.findByCourse(courseId)) as unknown as Array<{
+    const allModules = (await this.modulesService.findByCourse(
+      courseId,
+    )) as unknown as Array<{
       id: string;
       title: string;
       published: boolean;
@@ -108,23 +142,39 @@ export class CompletionService {
 
     const looseLessons = await this.lessonsService.findLooseByCourse(courseId);
     const hasTrack = looseLessons.length > 0;
-    const trackResult = hasTrack ? await this.checkCourseTrack(studentId, courseId) : null;
+    const trackResult = hasTrack
+      ? await this.checkCourseTrack(studentId, courseId)
+      : null;
 
     const hasAnyContent = modules.length > 0 || hasTrack;
     const allModulesDone = moduleResults.every((r) => r.completed);
     const trackDone = !hasTrack || !!trackResult?.completed;
-    const examStatus = await this.examsService.getFinalExamStatusForCourse(courseId, studentId);
+    const examStatus = await this.examsService.getFinalExamStatusForCourse(
+      courseId,
+      studentId,
+    );
 
-    const completed = hasAnyContent && allModulesDone && trackDone && examStatus.passed;
+    const completed =
+      hasAnyContent && allModulesDone && trackDone && examStatus.passed;
 
     let certificateId: string | undefined;
     if (completed) {
       const course = await this.coursesService.findById(courseId);
       const student = await this.usersService.findById(studentId);
-      const teacher = await this.usersService.findById(course.teacherId.toString());
-      const moduleHours = modules.reduce((sum, m) => sum + (Number(m.workloadHours) || 0), 0);
+      const teacher = await this.usersService.findById(
+        course.teacherId.toString(),
+      );
+      const moduleHours = modules.reduce(
+        (sum, m) => sum + (Number(m.workloadHours) || 0),
+        0,
+      );
       const trackHours = hasTrack
-        ? Math.round(looseLessons.reduce((sum, l) => sum + (l.video?.durationSeconds ?? 0), 0) / 3600)
+        ? Math.round(
+            looseLessons.reduce(
+              (sum, l) => sum + (l.video?.durationSeconds ?? 0),
+              0,
+            ) / 3600,
+          )
         : 0;
 
       const certificate = await this.certificatesService.generate({
@@ -139,6 +189,12 @@ export class CompletionService {
       certificateId = certificate.id;
     }
 
-    return { modules: moduleResults, track: trackResult, exam: examStatus, completed, certificateId };
+    return {
+      modules: moduleResults,
+      track: trackResult,
+      exam: examStatus,
+      completed,
+      certificateId,
+    };
   }
 }

@@ -5,8 +5,15 @@ import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import PDFDocument from 'pdfkit';
 import * as QRCode from 'qrcode';
-import { Certificate, CertificateDocument, CertificateType } from './schemas/certificate.schema';
-import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
+import {
+  Certificate,
+  CertificateDocument,
+  CertificateType,
+} from './schemas/certificate.schema';
+import {
+  STORAGE_PROVIDER,
+  StorageProvider,
+} from '../storage/storage-provider.interface';
 import { InstitutionsService } from '../institutions/institutions.service';
 
 export interface GenerateCertificateParams {
@@ -30,13 +37,16 @@ const COMPLETION_PHRASE: Record<CertificateType, string> = {
 @Injectable()
 export class CertificatesService {
   constructor(
-    @InjectModel(Certificate.name) private certificateModel: Model<CertificateDocument>,
+    @InjectModel(Certificate.name)
+    private certificateModel: Model<CertificateDocument>,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
     private institutionsService: InstitutionsService,
     private config: ConfigService,
   ) {}
 
-  async generate(params: GenerateCertificateParams): Promise<CertificateDocument> {
+  async generate(
+    params: GenerateCertificateParams,
+  ): Promise<CertificateDocument> {
     const existing = await this.certificateModel.findOne({
       studentId: params.studentId,
       courseId: params.courseId,
@@ -47,9 +57,11 @@ export class CertificatesService {
 
     const institution = await this.institutionsService.getOrCreateDefault();
     const code = `CERT-${randomUUID().split('-')[0].toUpperCase()}`;
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:4200';
     const validationUrl = `${frontendUrl}/certificates/validate/${code}`;
-    const templateBuffer = await this.institutionsService.getCertificateTemplateBuffer();
+    const templateBuffer =
+      await this.institutionsService.getCertificateTemplateBuffer();
 
     const pdfBuffer = await this.buildPdf({
       ...params,
@@ -106,38 +118,62 @@ export class CertificatesService {
     };
   }
 
-  private async buildPdf(params: GenerateCertificateParams & {
-    institutionName: string;
-    code: string;
-    validationUrl: string;
-    issuedAt: Date;
-    templateBuffer: Buffer | null;
-  }): Promise<Buffer> {
-    const qrPngBuffer = await QRCode.toBuffer(params.validationUrl, { margin: 1, width: 160 });
+  private async buildPdf(
+    params: GenerateCertificateParams & {
+      institutionName: string;
+      code: string;
+      validationUrl: string;
+      issuedAt: Date;
+      templateBuffer: Buffer | null;
+    },
+  ): Promise<Buffer> {
+    const qrPngBuffer = await QRCode.toBuffer(params.validationUrl, {
+      margin: 1,
+      width: 160,
+    });
 
     return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 50 });
+      const doc = new PDFDocument({
+        size: 'A4',
+        layout: 'landscape',
+        margin: 50,
+      });
       const chunks: Buffer[] = [];
       doc.on('data', (chunk) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
       if (params.templateBuffer) {
-        doc.image(params.templateBuffer, 0, 0, { width: doc.page.width, height: doc.page.height });
+        doc.image(params.templateBuffer, 0, 0, {
+          width: doc.page.width,
+          height: doc.page.height,
+        });
       }
 
-      doc.fontSize(10).fillColor('#666').text(params.institutionName, { align: 'center' });
+      doc
+        .fontSize(10)
+        .fillColor('#666')
+        .text(params.institutionName, { align: 'center' });
       doc.moveDown(2);
-      doc.fontSize(28).fillColor('#111').text('Certificado de Conclusão', { align: 'center' });
+      doc
+        .fontSize(28)
+        .fillColor('#111')
+        .text('Certificado de Conclusão', { align: 'center' });
       doc.moveDown(2);
       doc
         .fontSize(14)
         .fillColor('#333')
-        .text(`Certificamos que ${params.studentName} ${COMPLETION_PHRASE[params.type]}`, {
-          align: 'center',
-        });
+        .text(
+          `Certificamos que ${params.studentName} ${COMPLETION_PHRASE[params.type]}`,
+          {
+            align: 'center',
+          },
+        );
       doc.moveDown(0.5);
-      doc.fontSize(20).fillColor('#111').text(params.moduleTitle, { align: 'center' });
+      doc
+        .fontSize(20)
+        .fillColor('#111')
+        .text(params.moduleTitle, { align: 'center' });
       doc.moveDown(1);
       doc
         .fontSize(12)
@@ -147,9 +183,14 @@ export class CertificatesService {
           { align: 'center' },
         );
       doc.moveDown(2);
-      doc.fontSize(10).fillColor('#666').text(`Código de validação: ${params.code}`, { align: 'center' });
+      doc
+        .fontSize(10)
+        .fillColor('#666')
+        .text(`Código de validação: ${params.code}`, { align: 'center' });
 
-      doc.image(qrPngBuffer, doc.page.width / 2 - 60, doc.y + 10, { width: 120 });
+      doc.image(qrPngBuffer, doc.page.width / 2 - 60, doc.y + 10, {
+        width: 120,
+      });
 
       doc.end();
     });

@@ -4,7 +4,10 @@ import { Model } from 'mongoose';
 import { randomUUID } from 'crypto';
 import { Institution, InstitutionDocument } from './schemas/institution.schema';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
-import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
+import {
+  STORAGE_PROVIDER,
+  StorageProvider,
+} from '../storage/storage-provider.interface';
 
 const IMAGE_URL_TTL_SECONDS = 60 * 60;
 
@@ -18,7 +21,8 @@ type ImageField =
 @Injectable()
 export class InstitutionsService {
   constructor(
-    @InjectModel(Institution.name) private institutionModel: Model<InstitutionDocument>,
+    @InjectModel(Institution.name)
+    private institutionModel: Model<InstitutionDocument>,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
   ) {}
 
@@ -29,7 +33,9 @@ export class InstitutionsService {
   }
 
   async update(id: string, dto: UpdateInstitutionDto) {
-    const institution = await this.institutionModel.findByIdAndUpdate(id, dto, { new: true });
+    const institution = await this.institutionModel.findByIdAndUpdate(id, dto, {
+      new: true,
+    });
     if (!institution) throw new NotFoundException('Instituição não encontrada');
     return this.toPublic(institution);
   }
@@ -44,7 +50,10 @@ export class InstitutionsService {
     return this.institutionModel.create({ name: 'GPschool' });
   }
 
-  async uploadLogo(id: string, file: { buffer: Buffer; mimetype: string; originalname: string }) {
+  async uploadLogo(
+    id: string,
+    file: { buffer: Buffer; mimetype: string; originalname: string },
+  ) {
     return this.uploadImage(id, 'logoKey', 'logo', file);
   }
 
@@ -59,7 +68,12 @@ export class InstitutionsService {
     id: string,
     file: { buffer: Buffer; mimetype: string; originalname: string },
   ) {
-    return this.uploadImage(id, 'registerBackgroundKey', 'register-background', file);
+    return this.uploadImage(
+      id,
+      'registerBackgroundKey',
+      'register-background',
+      file,
+    );
   }
 
   async uploadStudentBanner(
@@ -73,7 +87,12 @@ export class InstitutionsService {
     id: string,
     file: { buffer: Buffer; mimetype: string; originalname: string },
   ) {
-    return this.uploadImage(id, 'certificateTemplateKey', 'certificate-template', file);
+    return this.uploadImage(
+      id,
+      'certificateTemplateKey',
+      'certificate-template',
+      file,
+    );
   }
 
   /** Usado pelo CertificatesService pra desenhar a imagem como fundo do PDF — sem URL assinada, direto os bytes. */
@@ -92,7 +111,11 @@ export class InstitutionsService {
     const institution = await this.findById(id);
     const previousKey = institution[field];
     const key = `institutions/${id}/${prefix}/${randomUUID()}-${file.originalname}`;
-    const { storageKey } = await this.storage.upload(key, file.buffer, file.mimetype);
+    const { storageKey } = await this.storage.upload(
+      key,
+      file.buffer,
+      file.mimetype,
+    );
     institution[field] = storageKey;
     await institution.save();
     if (previousKey) {
@@ -116,18 +139,35 @@ export class InstitutionsService {
       studentBannerKey?: string;
       certificateTemplateKey?: string;
     };
-    const [logoUrl, loginBackgroundUrl, registerBackgroundUrl, studentBannerUrl, certificateTemplateUrl] =
-      await Promise.all([
-        logoKey ? this.storage.getSignedUrl(logoKey, IMAGE_URL_TTL_SECONDS) : undefined,
-        loginBackgroundKey ? this.storage.getSignedUrl(loginBackgroundKey, IMAGE_URL_TTL_SECONDS) : undefined,
-        registerBackgroundKey
-          ? this.storage.getSignedUrl(registerBackgroundKey, IMAGE_URL_TTL_SECONDS)
-          : undefined,
-        studentBannerKey ? this.storage.getSignedUrl(studentBannerKey, IMAGE_URL_TTL_SECONDS) : undefined,
-        certificateTemplateKey
-          ? this.storage.getSignedUrl(certificateTemplateKey, IMAGE_URL_TTL_SECONDS)
-          : undefined,
-      ]);
+    const [
+      logoUrl,
+      loginBackgroundUrl,
+      registerBackgroundUrl,
+      studentBannerUrl,
+      certificateTemplateUrl,
+    ] = await Promise.all([
+      logoKey
+        ? this.storage.getSignedUrl(logoKey, IMAGE_URL_TTL_SECONDS)
+        : undefined,
+      loginBackgroundKey
+        ? this.storage.getSignedUrl(loginBackgroundKey, IMAGE_URL_TTL_SECONDS)
+        : undefined,
+      registerBackgroundKey
+        ? this.storage.getSignedUrl(
+            registerBackgroundKey,
+            IMAGE_URL_TTL_SECONDS,
+          )
+        : undefined,
+      studentBannerKey
+        ? this.storage.getSignedUrl(studentBannerKey, IMAGE_URL_TTL_SECONDS)
+        : undefined,
+      certificateTemplateKey
+        ? this.storage.getSignedUrl(
+            certificateTemplateKey,
+            IMAGE_URL_TTL_SECONDS,
+          )
+        : undefined,
+    ]);
     return {
       ...json,
       logoUrl,

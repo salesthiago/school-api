@@ -1,33 +1,57 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { randomUUID, createHmac } from 'crypto';
+import { createHmac, randomUUID } from 'crypto';
+import { PaymentProviderKey } from '../../common/enums/payment-provider-key.enum';
+import { PaymentMethod } from '../../orders/schemas/order.schema';
+import { ItauRuntimeConfig } from '../payment-settings.service';
 import {
   ChargeRequest,
   ChargeResult,
   PaymentProvider,
+  PaymentProviderConfig,
   WebhookEvent,
 } from './payment-provider.interface';
 
 /**
- * Integração com a API Itaú (Pix Cobrança / Boleto).
+ * Integração com a API Itaú (Pix Cobrança / Pix recorrente).
  *
- * Produção: autenticação OAuth2 client-credentials + mTLS com certificado
- * digital da conta Itaú, endpoints reais de cobrança Pix e registro de
- * boleto, e validação de assinatura do webhook conforme documentação
- * do Itaú Developers. Os valores abaixo (ITAU_*) devem ser preenchidos
- * no .env antes de sair do modo sandbox/dev.
+ * As credenciais (client_id, client_secret, certificado + chave mTLS, webhook
+ * secret, ambiente) vêm do PaymentSettingsService — configuráveis no painel
+ * admin, com fallback para as variáveis ITAU_* do .env.
+ *
+ * As chamadas HTTP reais (OAuth2 client-credentials + mTLS, endpoints de
+ * cobrança Pix, validação de assinatura do webhook) ainda estão em modo
+ * sandbox/stub — a fiação da API real do Itaú é uma tarefa separada.
  */
 @Injectable()
 export class ItauPaymentProvider implements PaymentProvider {
-  constructor(private config: ConfigService) {}
+  readonly key = PaymentProviderKey.ITAU;
+  readonly supportedMethods: PaymentMethod[] = [PaymentMethod.PIX];
+  readonly supportsRecurring = true;
 
-  async createCharge(request: ChargeRequest): Promise<ChargeResult> {
+  isConfigured(config: PaymentProviderConfig): boolean {
+    const c = config as ItauRuntimeConfig;
+    return !!(
+      c.clientId &&
+      c.clientSecret &&
+      c.certificatePem &&
+      c.privateKeyPem
+    );
+  }
+
+  async createCharge(
+    request: ChargeRequest,
+    _config: PaymentProviderConfig,
+  ): Promise<ChargeResult> {
+    void _config;
     const providerReference = randomUUID();
 
-    if (request.method === 'pix') {
+    if (request.method === PaymentMethod.PIX) {
+      const prefix = request.recurring
+        ? 'DEV-SANDBOX-QR-REC'
+        : 'DEV-SANDBOX-QR';
       return {
         providerReference,
-        pixQrCode: `00020126DEV-SANDBOX-QR-${providerReference}`,
+        pixQrCode: `00020126${prefix}-${providerReference}`,
         pixCopyPaste: `dev-sandbox-pix-copy-paste-${providerReference}`,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000),
       };
@@ -41,8 +65,13 @@ export class ItauPaymentProvider implements PaymentProvider {
     };
   }
 
-  parseWebhook(rawBody: Buffer, headers: Record<string, string>): WebhookEvent {
-    const secret = this.config.get<string>('ITAU_WEBHOOK_SECRET') ?? 'dev-webhook-secret';
+  parseWebhook(
+    rawBody: Buffer,
+    headers: Record<string, string>,
+    config: PaymentProviderConfig,
+  ): WebhookEvent {
+    const secret =
+      (config as ItauRuntimeConfig).webhookSecret ?? 'dev-webhook-secret';
     const signature = headers['x-itau-signature'];
     const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
 

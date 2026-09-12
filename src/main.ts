@@ -12,7 +12,8 @@ async function bootstrap() {
 
   app.use(helmet());
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ??
+    origin:
+      process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) ??
       'http://localhost:4200',
     credentials: true,
   });
@@ -27,7 +28,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  // eslint-disable-next-line no-console
+
   console.log(`GPschool API rodando em http://localhost:${port}/api`);
 }
 bootstrap();

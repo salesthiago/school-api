@@ -1,10 +1,21 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Exam, ExamDocument, ExamScope } from './schemas/exam.schema';
 import { Question, QuestionDocument } from './schemas/question.schema';
-import { ExamAttempt, ExamAttemptDocument } from './schemas/exam-attempt.schema';
-import { CourseModule, CourseModuleDocument } from '../modules/schemas/module.schema';
+import {
+  ExamAttempt,
+  ExamAttemptDocument,
+} from './schemas/exam-attempt.schema';
+import {
+  CourseModule,
+  CourseModuleDocument,
+} from '../modules/schemas/module.schema';
 import { Course, CourseDocument } from '../courses/schemas/course.schema';
 import { Lesson, LessonDocument } from '../lessons/schemas/lesson.schema';
 import { CreateExamDto } from './dto/create-exam.dto';
@@ -21,8 +32,10 @@ export class ExamsService {
   constructor(
     @InjectModel(Exam.name) private examModel: Model<ExamDocument>,
     @InjectModel(Question.name) private questionModel: Model<QuestionDocument>,
-    @InjectModel(ExamAttempt.name) private attemptModel: Model<ExamAttemptDocument>,
-    @InjectModel(CourseModule.name) private moduleModel: Model<CourseModuleDocument>,
+    @InjectModel(ExamAttempt.name)
+    private attemptModel: Model<ExamAttemptDocument>,
+    @InjectModel(CourseModule.name)
+    private moduleModel: Model<CourseModuleDocument>,
     @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
     @InjectModel(Lesson.name) private lessonModel: Model<LessonDocument>,
   ) {}
@@ -33,25 +46,38 @@ export class ExamsService {
     let lessonId: string | undefined;
 
     if (dto.scope === ExamScope.MODULE) {
-      if (!dto.moduleId) throw new BadRequestException('moduleId é obrigatório para prova de módulo');
+      if (!dto.moduleId)
+        throw new BadRequestException(
+          'moduleId é obrigatório para prova de módulo',
+        );
       const module = await this.moduleModel.findById(dto.moduleId);
       if (!module) throw new NotFoundException('Módulo não encontrado');
       moduleId = dto.moduleId;
       courseId = module.courseId.toString();
     } else if (dto.scope === ExamScope.LESSON) {
-      if (!dto.lessonId) throw new BadRequestException('lessonId é obrigatório para prova de aula');
+      if (!dto.lessonId)
+        throw new BadRequestException(
+          'lessonId é obrigatório para prova de aula',
+        );
       const lesson = await this.lessonModel.findById(dto.lessonId);
       if (!lesson) throw new NotFoundException('Aula não encontrada');
       lessonId = dto.lessonId;
       moduleId = lesson.moduleId?.toString();
       courseId = lesson.courseId.toString();
     } else {
-      if (!dto.courseId) throw new BadRequestException('courseId é obrigatório para prova do curso');
+      if (!dto.courseId)
+        throw new BadRequestException(
+          'courseId é obrigatório para prova do curso',
+        );
       courseId = dto.courseId;
     }
 
     await this.assertOwnership(courseId, user);
-    await this.assertNoDuplicateTarget(dto.scope, { courseId, moduleId, lessonId });
+    await this.assertNoDuplicateTarget(dto.scope, {
+      courseId,
+      moduleId,
+      lessonId,
+    });
 
     return this.examModel.create({
       title: dto.title,
@@ -89,15 +115,24 @@ export class ExamsService {
   }
 
   findByModule(moduleId: string) {
-    return this.examModel.find({ ...idFilter('$moduleId', moduleId), scope: ExamScope.MODULE });
+    return this.examModel.find({
+      ...idFilter('$moduleId', moduleId),
+      scope: ExamScope.MODULE,
+    });
   }
 
   findByLesson(lessonId: string) {
-    return this.examModel.find({ ...idFilter('$lessonId', lessonId), scope: ExamScope.LESSON });
+    return this.examModel.find({
+      ...idFilter('$lessonId', lessonId),
+      scope: ExamScope.LESSON,
+    });
   }
 
   findByCourseScope(courseId: string) {
-    return this.examModel.find({ ...idFilter('$courseId', courseId), scope: ExamScope.COURSE });
+    return this.examModel.find({
+      ...idFilter('$courseId', courseId),
+      scope: ExamScope.COURSE,
+    });
   }
 
   async addQuestion(examId: string, dto: CreateQuestionDto, user: JwtUser) {
@@ -131,12 +166,16 @@ export class ExamsService {
   async getExamForManage(examId: string, user: JwtUser) {
     const exam = await this.findExamById(examId);
     await this.assertOwnership(exam.courseId.toString(), user);
-    const questions = await this.questionModel.find({ examId }).sort({ order: 1 });
+    const questions = await this.questionModel
+      .find({ examId })
+      .sort({ order: 1 });
     return { exam, questions };
   }
 
   async getQuestionsForStudent(examId: string) {
-    const questions = await this.questionModel.find({ examId }).sort({ order: 1 });
+    const questions = await this.questionModel
+      .find({ examId })
+      .sort({ order: 1 });
     return questions.map((q) => ({
       id: q.id,
       text: q.text,
@@ -145,9 +184,16 @@ export class ExamsService {
     }));
   }
 
-  async submitAttempt(examId: string, studentId: string, dto: SubmitAttemptDto) {
+  async submitAttempt(
+    examId: string,
+    studentId: string,
+    dto: SubmitAttemptDto,
+  ) {
     const exam = await this.findExamById(examId);
-    const previousAttempts = await this.attemptModel.countDocuments({ examId, studentId });
+    const previousAttempts = await this.attemptModel.countDocuments({
+      examId,
+      studentId,
+    });
 
     if (previousAttempts >= exam.maxAttempts && !exam.allowRetake) {
       throw new BadRequestException('Número máximo de tentativas atingido');
@@ -176,7 +222,9 @@ export class ExamsService {
       };
     });
 
-    const scorePercent = questions.length ? Math.round((correctCount / questions.length) * 100) : 0;
+    const scorePercent = questions.length
+      ? Math.round((correctCount / questions.length) * 100)
+      : 0;
     const passed = scorePercent >= exam.minScorePercent;
 
     const attempt = await this.attemptModel.create({
@@ -209,19 +257,29 @@ export class ExamsService {
   }
 
   async hasPassed(examId: string, studentId: string): Promise<boolean> {
-    const attempt = await this.attemptModel.findOne({ examId, studentId, passed: true });
+    const attempt = await this.attemptModel.findOne({
+      examId,
+      studentId,
+      passed: true,
+    });
     return !!attempt;
   }
 
   async getFinalExamStatus(moduleId: string, studentId: string) {
-    const exam = await this.examModel.findOne({ ...idFilter('$moduleId', moduleId), scope: ExamScope.MODULE });
+    const exam = await this.examModel.findOne({
+      ...idFilter('$moduleId', moduleId),
+      scope: ExamScope.MODULE,
+    });
     if (!exam) return { exists: false, passed: true };
     const passed = await this.hasPassed(exam.id, studentId);
     return { exists: true, examId: exam.id, passed };
   }
 
   async getFinalExamStatusForCourse(courseId: string, studentId: string) {
-    const exam = await this.examModel.findOne({ ...idFilter('$courseId', courseId), scope: ExamScope.COURSE });
+    const exam = await this.examModel.findOne({
+      ...idFilter('$courseId', courseId),
+      scope: ExamScope.COURSE,
+    });
     if (!exam) return { exists: false, passed: true };
     const passed = await this.hasPassed(exam.id, studentId);
     return { exists: true, examId: exam.id, passed };
@@ -233,13 +291,23 @@ export class ExamsService {
   ) {
     let existing: ExamDocument | null = null;
     if (scope === ExamScope.MODULE) {
-      existing = await this.examModel.findOne({ ...idFilter('$moduleId', target.moduleId!), scope });
+      existing = await this.examModel.findOne({
+        ...idFilter('$moduleId', target.moduleId!),
+        scope,
+      });
     } else if (scope === ExamScope.LESSON) {
-      existing = await this.examModel.findOne({ ...idFilter('$lessonId', target.lessonId!), scope });
+      existing = await this.examModel.findOne({
+        ...idFilter('$lessonId', target.lessonId!),
+        scope,
+      });
     } else {
-      existing = await this.examModel.findOne({ ...idFilter('$courseId', target.courseId), scope });
+      existing = await this.examModel.findOne({
+        ...idFilter('$courseId', target.courseId),
+        scope,
+      });
     }
-    if (existing) throw new BadRequestException('Já existe uma prova para este item');
+    if (existing)
+      throw new BadRequestException('Já existe uma prova para este item');
   }
 
   private async assertOwnership(courseId: string, user: JwtUser) {

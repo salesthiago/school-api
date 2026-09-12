@@ -21,7 +21,12 @@ export class Payment {
   @Prop({ required: true, unique: true, index: true })
   providerReference: string;
 
-  @Prop({ type: String, enum: PaymentStatus, default: PaymentStatus.PENDING, index: true })
+  @Prop({
+    type: String,
+    enum: PaymentStatus,
+    default: PaymentStatus.PENDING,
+    index: true,
+  })
   status: PaymentStatus;
 
   @Prop({ type: Object })

@@ -1,17 +1,32 @@
-import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Lesson, LessonDocument } from './schemas/lesson.schema';
-import { CourseModule, CourseModuleDocument } from '../modules/schemas/module.schema';
+import {
+  CourseModule,
+  CourseModuleDocument,
+} from '../modules/schemas/module.schema';
 import { Course, CourseDocument } from '../courses/schemas/course.schema';
-import { Attachment, AttachmentDocument } from '../attachments/schemas/attachment.schema';
+import {
+  Attachment,
+  AttachmentDocument,
+} from '../attachments/schemas/attachment.schema';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { CompleteVideoUploadDto } from './dto/complete-video-upload.dto';
 import { JwtUser } from '../common/decorators/current-user.decorator';
 import { Role } from '../common/enums/role.enum';
 import { BunnyStreamService } from '../video/bunny-stream.service';
-import { STORAGE_PROVIDER, StorageProvider } from '../storage/storage-provider.interface';
+import {
+  STORAGE_PROVIDER,
+  StorageProvider,
+} from '../storage/storage-provider.interface';
 import { idFilter } from '../common/utils/mongo-id.util';
 
 export interface LessonAccessKey {
@@ -23,9 +38,11 @@ export interface LessonAccessKey {
 export class LessonsService {
   constructor(
     @InjectModel(Lesson.name) private lessonModel: Model<LessonDocument>,
-    @InjectModel(CourseModule.name) private moduleModel: Model<CourseModuleDocument>,
+    @InjectModel(CourseModule.name)
+    private moduleModel: Model<CourseModuleDocument>,
     @InjectModel(Course.name) private courseModel: Model<CourseDocument>,
-    @InjectModel(Attachment.name) private attachmentModel: Model<AttachmentDocument>,
+    @InjectModel(Attachment.name)
+    private attachmentModel: Model<AttachmentDocument>,
     private readonly bunnyStream: BunnyStreamService,
     @Inject(STORAGE_PROVIDER) private storage: StorageProvider,
   ) {}
@@ -44,12 +61,16 @@ export class LessonsService {
   }
 
   findByModule(moduleId: string) {
-    return this.lessonModel.find(idFilter('$moduleId', moduleId)).sort({ order: 1 });
+    return this.lessonModel
+      .find(idFilter('$moduleId', moduleId))
+      .sort({ order: 1 });
   }
 
   /** Todas as aulas do curso (soltas + de módulo) — usado pela tela de gestão de conteúdo do curso. */
   findByCourse(courseId: string) {
-    return this.lessonModel.find(idFilter('$courseId', courseId)).sort({ order: 1 });
+    return this.lessonModel
+      .find(idFilter('$courseId', courseId))
+      .sort({ order: 1 });
   }
 
   /** Só as aulas avulsas (sem módulo) do curso, na trilha vendável separadamente dos módulos. */
@@ -86,7 +107,10 @@ export class LessonsService {
     const lesson = await this.findById(id);
     await this.assertOwnership(lesson.courseId.toString(), user);
     if (dto.moduleId) {
-      await this.assertModuleBelongsToCourse(dto.moduleId, lesson.courseId.toString());
+      await this.assertModuleBelongsToCourse(
+        dto.moduleId,
+        lesson.courseId.toString(),
+      );
     }
     // courseId de uma aula não muda por aqui — só organização dentro do curso (moduleId).
     const { courseId: _ignoredCourseId, moduleId, ...patch } = dto;
@@ -102,7 +126,9 @@ export class LessonsService {
     const lesson = await this.findById(id);
     await this.assertOwnership(lesson.courseId.toString(), user);
     const attachments = await this.attachmentModel.find({ lessonId: id });
-    await Promise.all(attachments.map((a) => this.storage.delete(a.storageKey)));
+    await Promise.all(
+      attachments.map((a) => this.storage.delete(a.storageKey)),
+    );
     await this.attachmentModel.deleteMany({ lessonId: id });
     await lesson.deleteOne();
   }
@@ -119,7 +145,11 @@ export class LessonsService {
   }
 
   /** Passo 2: o navegador confirma que o upload direto terminou. */
-  async completeVideoUpload(id: string, dto: CompleteVideoUploadDto, user: JwtUser) {
+  async completeVideoUpload(
+    id: string,
+    dto: CompleteVideoUploadDto,
+    user: JwtUser,
+  ) {
     const lesson = await this.findById(id);
     await this.assertOwnership(lesson.courseId.toString(), user);
     const previousExternalId = lesson.video?.externalId;
@@ -169,11 +199,16 @@ export class LessonsService {
     return { courseId: module.courseId.toString(), moduleId };
   }
 
-  private async assertModuleBelongsToCourse(moduleId: string, courseId: string) {
+  private async assertModuleBelongsToCourse(
+    moduleId: string,
+    courseId: string,
+  ) {
     const module = await this.moduleModel.findById(moduleId);
     if (!module) throw new NotFoundException('Módulo não encontrado');
     if (module.courseId.toString() !== courseId) {
-      throw new BadRequestException('O módulo informado não pertence a este curso');
+      throw new BadRequestException(
+        'O módulo informado não pertence a este curso',
+      );
     }
   }
 

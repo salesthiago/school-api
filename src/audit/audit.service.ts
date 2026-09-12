@@ -5,9 +5,19 @@ import { AuditLog, AuditLogDocument } from './schemas/audit-log.schema';
 
 @Injectable()
 export class AuditService {
-  constructor(@InjectModel(AuditLog.name) private auditLogModel: Model<AuditLogDocument>) {}
+  constructor(
+    @InjectModel(AuditLog.name) private auditLogModel: Model<AuditLogDocument>,
+  ) {}
 
-  log(action: string, params: { actorUserId?: string; targetType?: string; targetId?: string; metadata?: Record<string, unknown> } = {}) {
+  log(
+    action: string,
+    params: {
+      actorUserId?: string;
+      targetType?: string;
+      targetId?: string;
+      metadata?: Record<string, unknown>;
+    } = {},
+  ) {
     return this.auditLogModel.create({ action, ...params });
   }
 
