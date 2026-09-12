@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class UpdateInstitutionDto {
   @IsOptional()
@@ -32,4 +32,8 @@ export class UpdateInstitutionDto {
   @IsOptional()
   @IsString()
   website?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  landingPageEnabled?: boolean;
 }

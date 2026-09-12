@@ -44,6 +44,10 @@ export class Institution {
 
   @Prop({ type: Object, default: {} })
   certificateSettings: Record<string, unknown>;
+
+  /** Liga a vitrine pública de cursos como página inicial (frontend). */
+  @Prop({ default: false })
+  landingPageEnabled: boolean;
 }
 
 export const InstitutionSchema = SchemaFactory.createForClass(Institution);
