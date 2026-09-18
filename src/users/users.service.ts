@@ -204,6 +204,7 @@ export class UsersService {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      originalRole: user.originalRole ?? null,
       institutionId: user.institutionId,
       active: user.active,
       socialLinks: user.socialLinks,

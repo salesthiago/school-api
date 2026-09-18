@@ -123,6 +123,39 @@ export class ProgressService {
     );
   }
 
+  /**
+   * Progresso geral do curso inteiro (módulos + trilha avulsa), usado pelo gate de avaliações
+   * (aluno só pode avaliar com ≥70% concluído). Diferente de getModuleSummary/getCourseTrackSummary,
+   * não pondera prova final — é só a fração de aulas obrigatórias publicadas já concluídas.
+   */
+  async getCourseOverallProgress(
+    studentId: string,
+    courseId: string,
+  ): Promise<{ percentage: number; totalMandatoryLessons: number; completedLessons: number }> {
+    const lessons = await this.lessonsService.findByCourse(courseId);
+    const mandatoryLessons = lessons.filter((l) => l.mandatory && l.published);
+
+    if (mandatoryLessons.length === 0) {
+      return { percentage: 0, totalMandatoryLessons: 0, completedLessons: 0 };
+    }
+
+    const completedDocs = await this.progressModel.find({
+      studentId,
+      lessonId: { $in: mandatoryLessons.map((l) => l.id) },
+      completed: true,
+    });
+
+    const percentage = Math.round(
+      (completedDocs.length / mandatoryLessons.length) * 100,
+    );
+
+    return {
+      percentage,
+      totalMandatoryLessons: mandatoryLessons.length,
+      completedLessons: completedDocs.length,
+    };
+  }
+
   private async summarize(
     studentId: string,
     lessons: LessonDocument[],

@@ -28,6 +28,7 @@ import { SettingsModule } from './settings/settings.module';
 import { StatsModule } from './stats/stats.module';
 import { ReportsModule } from './reports/reports.module';
 import { NotesModule } from './notes/notes.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { NotesModule } from './notes/notes.module';
     StatsModule,
     ReportsModule,
     NotesModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

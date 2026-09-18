@@ -45,4 +45,10 @@ export class AuthController {
   logout(@CurrentUser() user: JwtUser) {
     return this.authService.logout(user.userId);
   }
+
+  @Post('switch-role')
+  @UseGuards(JwtAuthGuard)
+  switchRole(@CurrentUser() user: JwtUser) {
+    return this.authService.switchRole(user.userId);
+  }
 }

@@ -40,4 +40,15 @@ export class ProgressController {
   ) {
     return this.progressService.getCourseTrackSummary(user.userId, courseId);
   }
+
+  @Get('course/:courseId/overall')
+  getCourseOverallProgress(
+    @Param('courseId') courseId: string,
+    @CurrentUser() user: JwtUser,
+  ) {
+    return this.progressService.getCourseOverallProgress(
+      user.userId,
+      courseId,
+    );
+  }
 }

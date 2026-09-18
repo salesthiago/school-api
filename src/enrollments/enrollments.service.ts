@@ -91,6 +91,19 @@ export class EnrollmentsService {
     );
   }
 
+  /** Matrícula ativa em qualquer módulo OU na trilha avulsa do curso — usado pro gate de avaliações. */
+  async hasAnyActiveEnrollment(
+    studentId: string,
+    courseId: string,
+  ): Promise<boolean> {
+    const enrollment = await this.enrollmentModel.findOne({
+      studentId,
+      courseId,
+      status: EnrollmentStatus.ACTIVE,
+    });
+    return !!enrollment;
+  }
+
   findByStudent(studentId: string) {
     return this.enrollmentModel
       .find({ studentId, status: EnrollmentStatus.ACTIVE })

@@ -27,6 +27,10 @@ export class User {
   @Prop({ type: String, enum: Role, default: Role.STUDENT, index: true })
   role: Role;
 
+  /** Papel real do professor enquanto ele está "vendo como aluno" — ver AuthService.switchRole. */
+  @Prop({ type: String, enum: Role, default: null })
+  originalRole?: Role | null;
+
   @Prop({ type: Types.ObjectId, ref: 'Institution', index: true })
   institutionId?: Types.ObjectId;
 

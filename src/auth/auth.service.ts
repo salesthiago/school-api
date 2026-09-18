@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import type { StringValue } from 'ms';
@@ -71,6 +75,30 @@ export class AuthService {
 
   async logout(userId: string) {
     await this.usersService.setRefreshTokenHash(userId, null);
+  }
+
+  /**
+   * Alterna entre o papel real de professor e uma visão temporária de aluno, pra ele poder se
+   * matricular em outros cursos. Reemite os tokens (como login/refresh) já com o novo papel.
+   */
+  async switchRole(userId: string): Promise<TokenPair> {
+    const user = await this.usersService.findById(userId);
+    if (user.role === Role.TEACHER) {
+      user.originalRole = Role.TEACHER;
+      user.role = Role.STUDENT;
+    } else if (user.role === Role.STUDENT && user.originalRole === Role.TEACHER) {
+      user.role = Role.TEACHER;
+      user.originalRole = null;
+    } else {
+      throw new ForbiddenException('Você não pode trocar de papel');
+    }
+    await user.save();
+    return this.issueTokens(
+      user.id,
+      user.email,
+      user.role,
+      user.institutionId?.toString() ?? '',
+    );
   }
 
   verifyRefreshToken(token: string) {
