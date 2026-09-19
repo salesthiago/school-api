@@ -11,6 +11,7 @@ import { createHash } from 'crypto';
 import { UsersService } from '../users/users.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { GoogleTokenVerifier } from './google-token.verifier';
 import { Role } from '../common/enums/role.enum';
 
 export interface TokenPair {
@@ -24,6 +25,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private config: ConfigService,
+    private googleVerifier: GoogleTokenVerifier,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -43,6 +45,50 @@ export class AuthService {
     }
     const matches = await bcrypt.compare(dto.password, user.passwordHash);
     if (!matches) {
+      throw new UnauthorizedException('Credenciais inválidas');
+    }
+    return this.issueTokens(
+      user.id,
+      user.email,
+      user.role,
+      user.institutionId?.toString() ?? '',
+    );
+  }
+
+  /**
+   * Entrar/cadastrar com Google: valida o ID token e (1) usa a conta já vinculada a esse Google,
+   * (2) senão vincula à conta existente com o mesmo e-mail, (3) senão cria uma conta de aluno.
+   * Só aceita e-mail verificado pelo Google — vincular por e-mail não verificado permitiria
+   * tomar a conta de outra pessoa.
+   */
+  async googleLogin(idToken: string) {
+    const identity = await this.googleVerifier.verify(idToken);
+    if (!identity.emailVerified) {
+      throw new UnauthorizedException('E-mail do Google não verificado');
+    }
+
+    let user = await this.usersService.findByGoogleId(identity.sub);
+    if (!user) {
+      user = await this.usersService.findByEmail(identity.email);
+      if (user) {
+        if (user.googleId && user.googleId !== identity.sub) {
+          throw new UnauthorizedException(
+            'Este e-mail já está vinculado a outra conta Google',
+          );
+        }
+        if (user.active) {
+          user = await this.usersService.linkGoogleId(user, identity.sub);
+        }
+      } else {
+        user = await this.usersService.createFromGoogle({
+          name: identity.name,
+          email: identity.email,
+          googleId: identity.sub,
+        });
+      }
+    }
+
+    if (!user.active) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
     return this.issueTokens(

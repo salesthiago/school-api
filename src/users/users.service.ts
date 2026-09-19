@@ -59,6 +59,43 @@ export class UsersService {
     return user.save();
   }
 
+  findByGoogleId(googleId: string): Promise<UserDocument | null> {
+    return this.userModel.findOne({ googleId, deletedAt: null });
+  }
+
+  /**
+   * Conta criada pelo login com Google: sem senha conhecida (o hash é de um valor aleatório
+   * descartado), então só entra pelo Google — ou por uma senha definida depois.
+   */
+  async createFromGoogle(profile: {
+    name: string;
+    email: string;
+    googleId: string;
+  }): Promise<UserDocument> {
+    const email = profile.email.toLowerCase();
+    const existing = await this.userModel.findOne({ email });
+    if (existing) {
+      throw new ConflictException('E-mail já cadastrado');
+    }
+    const passwordHash = await bcrypt.hash(randomUUID() + randomUUID(), 10);
+    const user = new this.userModel({
+      name: profile.name,
+      email,
+      passwordHash,
+      googleId: profile.googleId,
+      role: Role.STUDENT,
+    });
+    return user.save();
+  }
+
+  async linkGoogleId(
+    user: UserDocument,
+    googleId: string,
+  ): Promise<UserDocument> {
+    user.googleId = googleId;
+    return user.save();
+  }
+
   findByEmail(email: string): Promise<UserDocument | null> {
     return this.userModel.findOne({
       email: email.toLowerCase(),

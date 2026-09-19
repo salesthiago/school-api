@@ -112,6 +112,7 @@ próximo deploy.
 | `API_PUBLIC_URL`         | `https://api.seudominio.com/api`                                |
 | `FRONTEND_URL`           | `https://seu-frontend-em-producao.com`                          |
 | `CORS_ORIGIN`            | mesmo domínio do `FRONTEND_URL` (ou lista separada por vírgula) |
+| `GOOGLE_CLIENT_IDS`     | (opcional) ID do cliente OAuth **Web** do Google, para o login com Google do app; vários separados por vírgula. Vazio desliga o recurso |
 | `MONGODB_URI`            | `mongodb://localhost:27017/gpschool` (Mongo roda na própria instância) |
 | `JWT_ACCESS_SECRET`      | gerar com `openssl rand -hex 32`                                |
 | `JWT_REFRESH_SECRET`     | gerar com `openssl rand -hex 32`                                |

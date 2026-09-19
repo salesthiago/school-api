@@ -24,6 +24,10 @@ export class User {
   @Prop({ required: true })
   passwordHash: string;
 
+  /** Conta Google vinculada (claim `sub`) — login com Google no app. Único quando presente. */
+  @Prop({ type: String, unique: true, sparse: true })
+  googleId?: string;
+
   @Prop({ type: String, enum: Role, default: Role.STUDENT, index: true })
   role: Role;
 
