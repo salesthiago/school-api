@@ -14,6 +14,10 @@ export class Course {
   @Prop()
   coverImageKey?: string;
 
+  /** Miniatura (WebP) da capa, para listagens — ausente em capas anteriores à geração de miniaturas. */
+  @Prop()
+  coverThumbKey?: string;
+
   @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
   teacherId: Types.ObjectId;
 

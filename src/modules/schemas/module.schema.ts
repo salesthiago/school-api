@@ -34,6 +34,10 @@ export class CourseModule {
 
   @Prop()
   coverImageKey?: string;
+
+  /** Miniatura (WebP) da capa, para listagens — ausente em capas anteriores à geração de miniaturas. */
+  @Prop()
+  coverThumbKey?: string;
 }
 
 export const CourseModuleSchema = SchemaFactory.createForClass(CourseModule);

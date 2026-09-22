@@ -8,6 +8,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { randomUUID } from 'crypto';
+import { makeCoverThumb } from '../common/utils/image-thumb.util';
 import { Course, CourseDocument } from './schemas/course.schema';
 import { Lesson, LessonDocument } from '../lessons/schemas/lesson.schema';
 import { CreateCourseDto } from './dto/create-course.dto';
@@ -102,6 +103,9 @@ export class CoursesService {
     if (course.coverImageKey) {
       await this.storage.delete(course.coverImageKey);
     }
+    if (course.coverThumbKey) {
+      await this.storage.delete(course.coverThumbKey);
+    }
     await course.deleteOne();
   }
 
@@ -112,17 +116,25 @@ export class CoursesService {
   ) {
     const course = await this.findById(id);
     this.assertOwnership(course, user);
-    const previousKey = course.coverImageKey;
-    const key = `courses/${id}/${randomUUID()}-${file.originalname}`;
+    // Gera a miniatura antes de gravar qualquer coisa: arquivo que não é imagem falha aqui (400).
+    const thumb = await makeCoverThumb(file.buffer);
+    const previousKeys = [course.coverImageKey, course.coverThumbKey];
+    const base = `courses/${id}/${randomUUID()}`;
     const { storageKey } = await this.storage.upload(
-      key,
+      `${base}-${file.originalname}`,
       file.buffer,
       file.mimetype,
     );
+    const { storageKey: thumbKey } = await this.storage.upload(
+      `${base}-thumb.webp`,
+      thumb,
+      'image/webp',
+    );
     course.coverImageKey = storageKey;
+    course.coverThumbKey = thumbKey;
     await course.save();
-    if (previousKey) {
-      await this.storage.delete(previousKey);
+    for (const previousKey of previousKeys) {
+      if (previousKey) await this.storage.delete(previousKey);
     }
     return this.toPublic(course);
   }
@@ -134,17 +146,19 @@ export class CoursesService {
     }
   }
 
-  private async toPublic(course: CourseDocument) {
-    const { coverImageKey, ...json } = course.toJSON() as unknown as Record<
-      string,
-      unknown
-    > & {
-      coverImageKey?: string;
-    };
+  async toPublic(course: CourseDocument) {
+    const { coverImageKey, coverThumbKey, ...json } =
+      course.toJSON() as unknown as Record<string, unknown> & {
+        coverImageKey?: string;
+        coverThumbKey?: string;
+      };
     return {
       ...json,
       coverImageUrl: coverImageKey
         ? await this.storage.getSignedUrl(coverImageKey, COVER_URL_TTL_SECONDS)
+        : undefined,
+      coverThumbUrl: coverThumbKey
+        ? await this.storage.getSignedUrl(coverThumbKey, COVER_URL_TTL_SECONDS)
         : undefined,
     };
   }

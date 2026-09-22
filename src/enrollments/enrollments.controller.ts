@@ -11,6 +11,8 @@ import { ManualEnrollDto } from './dto/manual-enroll.dto';
 import { EnrollDto } from './dto/enroll.dto';
 import { ModulesService } from '../modules/modules.service';
 import { CoursesService } from '../courses/courses.service';
+import { CourseDocument } from '../courses/schemas/course.schema';
+import { CourseModuleDocument } from '../modules/schemas/module.schema';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -29,9 +31,29 @@ export class EnrollmentsController {
     private readonly coursesService: CoursesService,
   ) {}
 
+  /**
+   * Curso e módulo vêm populados; passam por toPublic para ganhar coverImageUrl/coverThumbUrl
+   * (URLs assinadas) e não expor as chaves internas de storage.
+   */
   @Get('mine')
-  findMine(@CurrentUser() user: JwtUser) {
-    return this.enrollmentsService.findByStudent(user.userId);
+  async findMine(@CurrentUser() user: JwtUser) {
+    const enrollments = await this.enrollmentsService.findByStudent(
+      user.userId,
+    );
+    return Promise.all(
+      enrollments.map(async (enrollment) => {
+        const json = enrollment.toJSON() as unknown as Record<string, unknown>;
+        // Populate de curso/módulo apagado devolve null — mantém como está (o app descarta).
+        const course = enrollment.courseId as unknown as CourseDocument | null;
+        const module =
+          enrollment.moduleId as unknown as CourseModuleDocument | null;
+        if (course?.toJSON)
+          json.courseId = await this.coursesService.toPublic(course);
+        if (module?.toJSON)
+          json.moduleId = await this.modulesService.toPublic(module);
+        return json;
+      }),
+    );
   }
 
   /**

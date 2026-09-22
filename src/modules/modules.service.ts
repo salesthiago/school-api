@@ -8,6 +8,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { randomUUID } from 'crypto';
+import { makeCoverThumb } from '../common/utils/image-thumb.util';
 import { idFilter } from '../common/utils/mongo-id.util';
 import { CourseModule, CourseModuleDocument } from './schemas/module.schema';
 import { Course, CourseDocument } from '../courses/schemas/course.schema';
@@ -125,17 +126,25 @@ export class ModulesService {
   ) {
     const module = await this.findById(id);
     await this.assertCourseOwnership(module.courseId.toString(), user);
-    const previousKey = module.coverImageKey;
-    const key = `modules/${id}/${randomUUID()}-${file.originalname}`;
+    // Gera a miniatura antes de gravar qualquer coisa: arquivo que não é imagem falha aqui (400).
+    const thumb = await makeCoverThumb(file.buffer);
+    const previousKeys = [module.coverImageKey, module.coverThumbKey];
+    const base = `modules/${id}/${randomUUID()}`;
     const { storageKey } = await this.storage.upload(
-      key,
+      `${base}-${file.originalname}`,
       file.buffer,
       file.mimetype,
     );
+    const { storageKey: thumbKey } = await this.storage.upload(
+      `${base}-thumb.webp`,
+      thumb,
+      'image/webp',
+    );
     module.coverImageKey = storageKey;
+    module.coverThumbKey = thumbKey;
     await module.save();
-    if (previousKey) {
-      await this.storage.delete(previousKey);
+    for (const previousKey of previousKeys) {
+      if (previousKey) await this.storage.delete(previousKey);
     }
     return this.toPublic(module);
   }
@@ -149,17 +158,19 @@ export class ModulesService {
     }
   }
 
-  private async toPublic(module: CourseModuleDocument) {
-    const { coverImageKey, ...json } = module.toJSON() as unknown as Record<
-      string,
-      unknown
-    > & {
-      coverImageKey?: string;
-    };
+  async toPublic(module: CourseModuleDocument) {
+    const { coverImageKey, coverThumbKey, ...json } =
+      module.toJSON() as unknown as Record<string, unknown> & {
+        coverImageKey?: string;
+        coverThumbKey?: string;
+      };
     return {
       ...json,
       coverImageUrl: coverImageKey
         ? await this.storage.getSignedUrl(coverImageKey, COVER_URL_TTL_SECONDS)
+        : undefined,
+      coverThumbUrl: coverThumbKey
+        ? await this.storage.getSignedUrl(coverThumbKey, COVER_URL_TTL_SECONDS)
         : undefined,
     };
   }
